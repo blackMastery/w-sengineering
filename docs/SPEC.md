@@ -180,7 +180,7 @@ Status changes go through Postgres functions (`security definer`) so transitions
 3. ✅ Storefront, mobile-first: home, category list, product page with option pickers, search, guest cart.
 4. ✅ Auth, cart merge, checkout, order placement (migration 0003 — apply to hosted).
 5. ✅ Admin: products, pricing, bulk cost entry (migration 0004 — apply to hosted).
-6. Order workflow: statuses, change proposals and approval, purchase orders.
+6. ✅ Order workflow: statuses (through Received), change proposals and approval, purchase orders (migration 0005 — apply to hosted).
 7. PDF invoices and Resend emails.
 
 ## Risks

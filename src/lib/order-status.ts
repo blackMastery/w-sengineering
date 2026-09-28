@@ -21,6 +21,12 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
+/** Admin wording where the customer's differs ("your approval" means the customer's). */
+export const ADMIN_STATUS_LABEL: Record<OrderStatus, string> = {
+  ...STATUS_LABEL,
+  awaiting_approval: "Awaiting customer",
+};
+
 export const STATUS_HELP: Record<OrderStatus, string> = {
   pending: "We’ve received your request and will review it shortly. You can still cancel it.",
   confirmed: "We’ve confirmed your request and will order it from the supplier.",

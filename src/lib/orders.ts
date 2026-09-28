@@ -1,4 +1,5 @@
 import "server-only";
+import type { ProposalData } from "@/components/account/proposal-view";
 import type { OrderStatus } from "./order-status";
 import { createClient } from "./supabase/server";
 
@@ -36,6 +37,8 @@ export type OrderDetail = OrderSummary & {
     productSlug: string | null;
   }[];
   events: { id: number; status: OrderStatus; note: string | null; createdAt: string }[];
+  /** Open supplier-shortage proposal waiting for the customer's answer. */
+  proposal: { id: string; proposed: ProposalData; note: string | null; createdAt: string } | null;
 };
 
 type Row = {
@@ -82,7 +85,7 @@ export async function getOrder(userId: string, number: string): Promise<OrderDet
     .from("orders")
     .select(
       "id, number, status, fulfillment, estimate_total, invoice_total, created_at, contact_name, contact_phone, address, notes, delivery_fee, " +
-        "order_lines(id, sku, name, option_values, qty, unit_price, sort, products(slug)), order_events(id, status, note, created_at)",
+        "order_lines(id, sku, name, option_values, qty, unit_price, sort, products(slug)), order_events(id, status, note, created_at), order_changes(id, proposed, note, status, created_at)",
     )
     .eq("number", number)
     .eq("user_id", userId)
@@ -108,7 +111,9 @@ export async function getOrder(userId: string, number: string): Promise<OrderDet
       products: { slug: string } | null;
     }[];
     order_events: { id: number; status: OrderStatus; note: string | null; created_at: string }[];
+    order_changes: { id: string; proposed: ProposalData; note: string | null; status: string; created_at: string }[];
   };
+  const open = r.order_changes.find((c) => c.status === "proposed");
 
   return {
     ...summarize(r),
@@ -127,6 +132,7 @@ export async function getOrder(userId: string, number: string): Promise<OrderDet
       productSlug: l.products?.slug ?? null,
     })),
     events: r.order_events.map((e) => ({ id: e.id, status: e.status, note: e.note, createdAt: e.created_at })),
+    proposal: open ? { id: open.id, proposed: open.proposed, note: open.note, createdAt: open.created_at } : null,
   };
 }
 

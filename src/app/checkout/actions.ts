@@ -67,6 +67,17 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   return { ok: true, number: (data as { number: string }).number };
 }
 
+export async function respondToChangesAction(orderId: string, number: string, approve: boolean): Promise<{ ok: boolean; error?: string }> {
+  const user = await getUser();
+  if (!user) return { ok: false, error: "Sign in again to answer." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("respond_to_changes", { p_order: orderId, p_approve: approve });
+  revalidatePath(`/account/orders/${number}`);
+  revalidatePath("/account");
+  if (error) return { ok: false, error: error.hint === "not_awaiting" ? error.message : "That didn’t work. Please try again." };
+  return { ok: true };
+}
+
 export async function cancelOrderAction(orderId: string, number: string): Promise<{ ok: boolean; error?: string }> {
   const user = await getUser();
   if (!user) return { ok: false, error: "Sign in again to cancel this order." };

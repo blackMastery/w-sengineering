@@ -7,7 +7,9 @@ import { requireUser } from "@/lib/auth";
 import { describeOptions, formatPrice } from "@/lib/format";
 import { STATUS_HELP, STATUS_LABEL } from "@/lib/order-status";
 import { getOrder } from "@/lib/orders";
+import { ProposalView } from "@/components/account/proposal-view";
 import { CancelOrderButton } from "./cancel-button";
+import { RespondButtons } from "./respond-buttons";
 
 export async function generateMetadata({ params }: PageProps<"/account/orders/[number]">): Promise<Metadata> {
   return { title: `Order ${(await params).number}`, robots: { index: false } };
@@ -53,6 +55,23 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ac
         <div className="mt-4 flex">
           <CancelOrderButton orderId={order.id} number={order.number} />
         </div>
+      )}
+
+      {order.status === "awaiting_approval" && order.proposal && (
+        <section className="mt-6 flex flex-col gap-4 rounded-2xl border-2 border-gold bg-gold-light/15 p-4 md:p-5" aria-labelledby="changes">
+          <div>
+            <h2 id="changes" className="font-serif text-2xl font-medium">
+              Please review these changes
+            </h2>
+            <p className="mt-1 text-[14px] leading-relaxed opacity-80">
+              The supplier couldn’t fill your order exactly as placed. Approve to continue with the changes below, or reject to
+              cancel the request.
+            </p>
+            {order.proposal.note && <p className="mt-3 rounded-lg bg-white/60 px-3 py-2 text-[14.5px]">“{order.proposal.note}”</p>}
+          </div>
+          <ProposalView proposed={order.proposal.proposed} />
+          <RespondButtons orderId={order.id} number={order.number} />
+        </section>
       )}
 
       <div className="mt-8 grid items-start gap-8 md:grid-cols-[minmax(0,1fr)_280px]">

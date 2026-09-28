@@ -56,7 +56,7 @@ export default async function AdminOverview() {
       )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-        <Stat label="Pending order requests" value={stats.pendingOrders} />
+        <Stat label="Pending order requests" value={stats.pendingOrders} href="/admin/orders?status=pending" tone={stats.pendingOrders ? "warn" : undefined} />
         <Stat label="Products" value={stats.products} href="/admin/products" />
         <Stat label="Names to review" value={stats.needsReview} href="/admin/products?flag=needs_review" tone={stats.needsReview ? "warn" : undefined} />
         <Stat label="Products without a photo" value={stats.noImage} href="/admin/products?flag=no_image" />

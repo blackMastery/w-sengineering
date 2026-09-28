@@ -11,8 +11,9 @@ Stack: Next.js (App Router, TypeScript, Tailwind) · Supabase (Postgres, Auth, S
 - ✅ Build step 3, storefront (see "Storefront" below).
 - ✅ Build step 4 code: auth, cart merge, checkout, order placement, account pages; `supabase/migrations/0003_orders.sql` tested on local Supabase.
 - ✅ Build step 5 code: admin (`/admin`: overview, products, pricing, bulk costs, price-on-request list) + `supabase/migrations/0004_admin.sql`, tested on local Supabase.
-- ⚠️ **0003 and 0004 are not on the hosted project yet** — the owner applies it (`supabase db push`). Until then hosted checkout/account pages fail. Also in the hosted dashboard: Authentication → URL Configuration (Site URL + redirect URLs incl. `/auth/confirm`), and paste `supabase/templates/*.html` into Authentication → Emails (confirm signup, reset password).
-- ⏭ Next: step 6, order workflow (`docs/SPEC.md` → Build order). Make yourself admin: `update profiles set role = 'admin' where id = '<auth user id>';`
+- ✅ Build step 6 code: order workflow (`/admin/orders`, `/admin/purchase-orders`, customer approve/reject) + `supabase/migrations/0005_workflow.sql`, tested on local Supabase. Statuses stop at Received; Invoiced → Paid → Delivered come with invoicing (step 7).
+- ⚠️ **0003–0005 are not on the hosted project yet** — the owner applies it (`supabase db push`). Until then hosted checkout/account pages fail. Also in the hosted dashboard: Authentication → URL Configuration (Site URL + redirect URLs incl. `/auth/confirm`), and paste `supabase/templates/*.html` into Authentication → Emails (confirm signup, reset password).
+- ⏭ Next: step 7, PDF invoices + Resend emails (`docs/SPEC.md` → Build order). Needs the owner's invoice number format and Resend domain/sender. Make yourself admin: `update profiles set role = 'admin' where id = '<auth user id>';`
 - **Node 22+ required** (`.nvmrc`): supabase-js needs native WebSocket, and Node 20 throws on client creation.
 
 ## Repo map
@@ -104,6 +105,19 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
 - Bulk paste parser: `src/lib/admin/paste.ts` (SKU+cost lines, or a single column applied in row order).
 - Photo uploads go to `product-images/uploads/<product id>/…` (5 MB max; `serverActions.bodySizeLimit` is 6 MB). Removing a photo deletes the row only; the file stays in Storage.
 - Avoid `.in("id", hugeList)`: ~500 UUIDs overflow the PostgREST URL.
+
+## Order workflow (build step 6) — code map
+
+- 0005 functions (service_role only unless noted, all audited + add an `order_events` row):
+  `admin_set_order_status` (confirm pending; cancel anything before paid, reason required in the app; manual "arrived"),
+  `admin_propose_changes` / `admin_withdraw_changes` (supplier short: qty change, remove with qty 0, add replacements; snapshot price at proposal),
+  `respond_to_changes` (customer, authenticated: approve applies + resumes; reject cancels),
+  `admin_build_purchase_orders` (lines not on a PO from confirmed/ordered orders → one draft per supplier, grouped by SKU),
+  `admin_set_po_status` (draft→sent→received, or delete draft). Orders advance automatically once *every* line is on a sent/received PO, so approved replacements need their own PO.
+- Cancelling takes an order's lines off draft POs; lines on sent POs stay (they were ordered).
+- UI: `src/app/admin/orders/`, `src/app/admin/purchase-orders/` (CSV at `/admin/purchase-orders/[id]/csv`, formula-safe), shared diff `components/account/proposal-view.tsx`. Admin wording for statuses: `ADMIN_STATUS_LABEL`.
+- PO numbers `PO-1001…` (internal). Reminder email after 3 days (`order_changes.reminded_at`) is step 7.
+- Cart sync keeps a `ws-cart-dirty` flag so a signed-in change made just before a reload/tab close is pushed, not overwritten.
 
 ## First task: storefront (build step 3)
 
