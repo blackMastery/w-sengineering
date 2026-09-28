@@ -16,7 +16,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
   const supabase = await createClient();
   const [orders, { data: profile }, params] = await Promise.all([
     listOrders(user.id),
-    supabase.from("profiles").select("full_name, phone").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("full_name, phone, role").eq("id", user.id).maybeSingle(),
     searchParams,
   ]);
 
@@ -29,7 +29,12 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
             {[profile?.full_name, user.email, profile?.phone].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {profile?.role === "admin" && (
+            <Link href="/admin" className="flex h-11 items-center rounded-lg bg-navy px-4 text-sm font-medium text-cream-2!">
+              Admin
+            </Link>
+          )}
           <Link href="/account/password" className="flex h-11 items-center rounded-lg border border-navy/35 px-4 text-sm font-medium">
             Change password
           </Link>

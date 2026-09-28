@@ -10,8 +10,9 @@ Stack: Next.js (App Router, TypeScript, Tailwind) · Supabase (Postgres, Auth, S
 - ✅ Photos uploaded to the hosted Storage bucket (`product-images/catalog/`, 1,300 files).
 - ✅ Build step 3, storefront (see "Storefront" below).
 - ✅ Build step 4 code: auth, cart merge, checkout, order placement, account pages; `supabase/migrations/0003_orders.sql` tested on local Supabase.
-- ⚠️ **0003 is not on the hosted project yet** — the owner applies it (`supabase db push`). Until then hosted checkout/account pages fail. Also in the hosted dashboard: Authentication → URL Configuration (Site URL + redirect URLs incl. `/auth/confirm`), and paste `supabase/templates/*.html` into Authentication → Emails (confirm signup, reset password).
-- ⏭ Next: step 5, admin (`docs/SPEC.md` → Build order).
+- ✅ Build step 5 code: admin (`/admin`: overview, products, pricing, bulk costs, price-on-request list) + `supabase/migrations/0004_admin.sql`, tested on local Supabase.
+- ⚠️ **0003 and 0004 are not on the hosted project yet** — the owner applies it (`supabase db push`). Until then hosted checkout/account pages fail. Also in the hosted dashboard: Authentication → URL Configuration (Site URL + redirect URLs incl. `/auth/confirm`), and paste `supabase/templates/*.html` into Authentication → Emails (confirm signup, reset password).
+- ⏭ Next: step 6, order workflow (`docs/SPEC.md` → Build order). Make yourself admin: `update profiles set role = 'admin' where id = '<auth user id>';`
 - **Node 22+ required** (`.nvmrc`): supabase-js needs native WebSocket, and Node 20 throws on client creation.
 
 ## Repo map
@@ -56,7 +57,7 @@ Local Supabase: `supabase start` then `supabase db reset` (config in `supabase/c
 
 ## Data rules (don't break these)
 
-- **Prices:** read `variant_prices.price` (local currency, whole units). `null` → show **"Price on request"**; still orderable. Never compute price in the client.
+- **Prices:** read `variant_prices.price` (Guyanese dollars, GYD, whole units; displayed as "GYD 5,299" by `formatPrice`). `null` → show **"Price on request"**; still orderable. Never compute price in the client.
 - **`usd_cost` is confidential.** anon/authenticated have no column grant on it. Admin features read/write it in server code with `SUPABASE_SERVICE_ROLE_KEY` (server-only module; never import into client components). Check `is_admin()` / `profiles.role` before using the service client.
 - **No stock.** `variants.is_orderable = false` means discontinued: hide it, block add-to-cart. No "in stock" / "only X left" UI anywhere.
 - **Variant picker:** options come from `product_options` (name + ordered `values`); a variant's `option_values` is `{ "Handle": "Cork", "Size": "14\"x4\"" }`. Only offer combinations that exist in `variants` (options are dependent, e.g. Size and Shank). Selecting updates SKU + price.
@@ -82,7 +83,7 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
 - `src/lib/variant-picker.ts` — hierarchical option picker. Handles messy extraction data: variants missing an option key show as "Standard"; identical option combos fall through to a "Part #" chooser; options with one value are hidden.
 - `src/lib/cart-store.ts` + `components/cart/` — guest cart (`localStorage` key `ws-cart-v1`, variant id + qty). Line details come from the `cartLinesAction` server action; discontinued lines drop out.
 - `src/app/actions.ts` — server actions for search-as-you-type and cart lines.
-- Currency symbol lives in `src/lib/format.ts` (open question).
+- Currency: GYD, formatted only in `src/lib/format.ts` (`formatPrice`). Admin USD costs use `formatUsd`.
 
 ## Accounts & orders (build step 4) — code map
 
@@ -92,6 +93,17 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
 - Checkout: `src/app/checkout/` → server action → `place_order()` (re-validates lines, snapshots prices, empties cart). Order pages: `/account`, `/account/orders/[number]` (timeline, cancel while Pending via `cancel_order()`).
 - Order numbers `WS-1001…` from `order_number_seq` (owner decision). Statuses in `src/lib/order-status.ts` match the DB check constraint.
 - supabase-js builders are lazy: always `await` an `.rpc()`/query or it never runs.
+
+## Admin (build step 5) — code map
+
+- Guard: `src/lib/admin/auth.ts` — `requireAdmin()` in every admin page (layouts don't re-run on client navigation), `adminActor()` at the top of every admin server action (actions are public endpoints). Role is read from `profiles` with the service client.
+- `src/lib/supabase/admin.ts` service-role client (server-only); `src/lib/admin/data.ts` admin reads (incl. `usd_cost`); `src/app/admin/actions.ts` writes.
+- Pricing writes go through `admin_update_variants` / `admin_update_settings` (0004; service_role-only, atomic, one audit row per change). Product/photo/related edits write `audit_log` from the action.
+- 0004 also makes `settings` private (exchange rate + markup would let anyone back out `usd_cost`) and grants `service_role` table access explicitly (local projects don't by default).
+- After any catalog edit call `refreshStorefront()` (`updateTag("catalog")` + `revalidatePath("/", "layout")`).
+- Bulk paste parser: `src/lib/admin/paste.ts` (SKU+cost lines, or a single column applied in row order).
+- Photo uploads go to `product-images/uploads/<product id>/…` (5 MB max; `serverActions.bodySizeLimit` is 6 MB). Removing a photo deletes the row only; the file stays in Storage.
+- Avoid `.in("id", hugeList)`: ~500 UUIDs overflow the PostgREST URL.
 
 ## First task: storefront (build step 3)
 

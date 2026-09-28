@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
     // Catalog photos are already small webp files (~12 KB), so skip the optimizer.
     unoptimized: true,
   },
+  experimental: {
+    // Admin photo uploads (5 MB max) go through a server action; default limit is 1 MB.
+    serverActions: { bodySizeLimit: "6mb" },
+  },
 };
 
 export default nextConfig;

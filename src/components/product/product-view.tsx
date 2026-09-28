@@ -124,7 +124,7 @@ export function ProductView({ product, initialSku }: { product: ProductDetail; i
               add(variant.id, qty, `${qty > 1 ? `${qty} × ` : ""}${product.name}`);
               setQty(1);
             }}
-            className="flex-1 rounded-lg bg-navy px-4 text-[15px] font-semibold text-cream-2 hover:bg-navy-deep"
+            className="min-w-0 flex-1 rounded-lg bg-navy px-3 py-2 text-[15px] leading-tight font-semibold text-cream-2 hover:bg-navy-deep"
           >
             Add to cart{variant.price != null && ` — ${formatPrice(variant.price * qty)}`}
           </button>

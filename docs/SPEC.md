@@ -38,7 +38,7 @@ Display Accessories (dealer fixtures) are excluded. Apparel is excluded for now 
 
 ## Pricing
 
-Prices are in local currency, computed from a USD supplier cost that admin enters per variant as quotes come in.
+Prices are in Guyanese dollars (GYD, whole units), computed from a USD supplier cost that admin enters per variant as quotes come in.
 
 ```
 price = price_override ?? round99(usd_cost × exchange_rate × (1 + markup_pct/100))
@@ -125,7 +125,7 @@ Wireframe screens: home (hero, category tiles, best sellers), category list (fil
 - Cart drops the promo code field, the trade-quote link and the free-shipping line. "Checkout" → "Place order request" with an estimate note.
 - Hero copy rewritten: W&S as an authorized reseller of Kraft Tool and W. Rose, not a maker ("built in our own workshop" must go).
 - Category tiles and mega menu use the 6 groups; subcategories inside.
-- Currency formatting and price filter ranges in local currency (no cents).
+- Prices shown in GYD, e.g. "GYD 5,299" (no cents); price filter ranges in GYD.
 
 **Mobile-first**
 
@@ -179,7 +179,7 @@ Status changes go through Postgres functions (`security definer`) so transitions
 2. ✅ PDF extraction and seed: products, variants, images.
 3. ✅ Storefront, mobile-first: home, category list, product page with option pickers, search, guest cart.
 4. ✅ Auth, cart merge, checkout, order placement (migration 0003 — apply to hosted).
-5. Admin: products, pricing, bulk cost entry.
+5. ✅ Admin: products, pricing, bulk cost entry (migration 0004 — apply to hosted).
 6. Order workflow: statuses, change proposals and approval, purchase orders.
 7. PDF invoices and Resend emails.
 
