@@ -1,0 +1,18 @@
+node_modules/
+.next/
+.env
+.env*.local
+.vercel
+docs/catalog/*.pdf
+__pycache__/
+.DS_Store
+supabase/seed_chunks/
+# Supabase CLI state (linked project ref, pooler URL, local branch)
+supabase/.temp/
+supabase/.branches/
+# Next.js / TypeScript build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
+
+data/
