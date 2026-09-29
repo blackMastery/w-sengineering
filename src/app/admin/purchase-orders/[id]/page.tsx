@@ -4,7 +4,7 @@ import { StatusPill } from "@/components/account/status-pill";
 import { LocalTime } from "@/components/local-time";
 import { requireAdmin } from "@/lib/admin/auth";
 import { getPurchaseOrder } from "@/lib/admin/orders";
-import { describeOptions, formatUsd } from "@/lib/format";
+import { describeOptions } from "@/lib/format";
 import { PoActions } from "./po-actions";
 
 export const metadata = { title: "Purchase order" };
@@ -15,8 +15,6 @@ export default async function PurchaseOrderPage({ params }: PageProps<"/admin/pu
   const po = await getPurchaseOrder(id);
   if (!po) notFound();
   const units = po.lines.reduce((n, l) => n + l.qty, 0);
-  const costed = po.lines.filter((l) => l.usd_cost != null);
-  const usdTotal = costed.reduce((sum, l) => sum + Number(l.usd_cost) * l.qty, 0);
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
@@ -63,7 +61,6 @@ export default async function PurchaseOrderPage({ params }: PageProps<"/admin/pu
                 <th className="px-3 py-2 font-medium">SKU</th>
                 <th className="px-3 py-2 font-medium">Item</th>
                 <th className="px-3 py-2 text-right font-medium">Qty</th>
-                <th className="px-3 py-2 text-right font-medium">USD cost</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-navy/8">
@@ -75,18 +72,11 @@ export default async function PurchaseOrderPage({ params }: PageProps<"/admin/pu
                     <div className="text-[12px] opacity-60">{describeOptions(l.option_values)}</div>
                   </td>
                   <td className="px-3 py-2 text-right font-medium tabular-nums">{l.qty}</td>
-                  <td className="px-3 py-2 text-right tabular-nums opacity-80">{l.usd_cost == null ? "—" : formatUsd(Number(l.usd_cost))}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {costed.length > 0 && (
-          <p className="text-right text-[13px] opacity-75">
-            Known cost {formatUsd(usdTotal)}
-            {costed.length < po.lines.length && ` (${po.lines.length - costed.length} SKUs without a cost)`}
-          </p>
-        )}
       </section>
 
       <section className="flex flex-col gap-2">

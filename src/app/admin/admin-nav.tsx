@@ -17,10 +17,9 @@ const SECTIONS: { title: string; links: NavLink[] }[] = [
   },
   { title: "Catalog", links: [{ href: "/admin/products", label: "Products" }] },
   {
-    title: "Pricing",
+    title: "Prices (GYD)",
     links: [
-      { href: "/admin/pricing", label: "Exchange rate & markup", exact: true },
-      { href: "/admin/pricing/bulk", label: "Bulk costs" },
+      { href: "/admin/pricing/bulk", label: "Bulk prices" },
       { href: "/admin/pricing/missing", label: "Price on request" },
     ],
   },

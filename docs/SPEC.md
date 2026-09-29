@@ -38,19 +38,12 @@ Display Accessories (dealer fixtures) are excluded. Apparel is excluded for now 
 
 ## Pricing
 
-Prices are in Guyanese dollars (GYD, whole units), computed from a USD supplier cost that admin enters per variant as quotes come in.
+Prices are entered directly in Guyanese dollars (GYD, whole units), one price per variant. GYD is the only currency: there is no USD cost, exchange rate or markup (owner decision; replaced by migration 0006).
 
-```
-price = price_override ?? round99(usd_cost × exchange_rate × (1 + markup_pct/100))
-round99(x) = ceil((x + 1) / 100) × 100 − 1        e.g. 5,244.75 → 5,299
-```
-
-- **Settings:** one global `exchange_rate` and `markup_pct` (table `settings`, single row).
-- **Override:** admin can set `price_override` per variant; it wins.
-- **No cost yet → price is null:** show "Price on request". It can still be ordered and is priced at invoice.
+- **Entry:** admin sets each variant's price on the product page, or in bulk by SKU prefix (paste from a spreadsheet).
+- **No price yet → null:** show "Price on request". It can still be ordered and is priced at invoice.
 - **Price lock:** each order line snapshots its unit price at order time. Invoices honor the snapshot.
 - **Tax:** none.
-- **Confidential:** `usd_cost` is never exposed to anon/authenticated. The public reads `variant_prices`. Admin code reads/writes cost server-side with the service-role key.
 
 ## Customer experience
 
@@ -97,7 +90,7 @@ stateDiagram-v2
 One admin at launch; `profiles.role` leaves room for staff.
 
 - **Products:** edit name, description, features, specs, brand, category, images; reassign images; toggle variants orderable/discontinued; featured flags; related products; clear `needs_review`.
-- **Pricing:** exchange rate + markup; USD cost per variant; price override; **bulk cost entry** (filter e.g. SKU prefix `CFE` and paste values); list of variants still "Price on request".
+- **Prices (GYD):** price per variant; **bulk price entry** (filter e.g. SKU prefix `CFE` and paste values); list of variants still "Price on request".
 - **Orders:** list by status, confirm, cancel, propose line changes, delivery fee, generate invoice, record payment, mark delivered.
 - **Purchase orders:** build from Confirmed lines grouped by SKU, export (CSV), mark sent and received.
 - **Audit log:** every status change, line edit and price edit: who, when, before, after. Customers see a status timeline only.
@@ -150,13 +143,12 @@ Row-level security everywhere: public reads the catalog; customers read/write on
 | brands | id, name, slug |
 | products | id, slug, name, category_id, brand_id, supplier_id, description, features (jsonb array), specs (jsonb), catalog_page, is_featured, is_new, needs_review |
 | product_options | id, product_id, name, sort, values (text[]) |
-| variants | id, product_id, sku (unique), option_values (jsonb), usd_cost, price_override, is_orderable, sort |
+| variants | id, product_id, sku (unique), option_values (jsonb), price (GYD, whole, nullable), is_orderable, sort |
 | product_images | id, product_id, variant_id (nullable), storage_path (in bucket `product-images`), sort |
 | related_products | product_id, related_id |
-| settings | id = 1, exchange_rate, markup_pct |
 | view variant_prices | id, product_id, sku, option_values, is_orderable, sort, price |
 
-Helpers: `is_admin()`, `round99()`. Storage bucket `product-images` is public-read, admin-write.
+Helpers: `is_admin()`. `variant_prices` is a plain view over variants (public price read). Storage bucket `product-images` is public-read, admin-write.
 
 **To build (migration 0003+):**
 
@@ -179,7 +171,7 @@ Status changes go through Postgres functions (`security definer`) so transitions
 2. ✅ PDF extraction and seed: products, variants, images.
 3. ✅ Storefront, mobile-first: home, category list, product page with option pickers, search, guest cart.
 4. ✅ Auth, cart merge, checkout, order placement (migration 0003 — apply to hosted).
-5. ✅ Admin: products, pricing, bulk cost entry (migration 0004 — apply to hosted).
+5. ✅ Admin: products, GYD prices, bulk price entry (0004; 0006 switched to GYD-only prices — apply to hosted).
 6. ✅ Order workflow: statuses (through Received), change proposals and approval, purchase orders (migration 0005 — apply to hosted).
 7. PDF invoices and Resend emails.
 
@@ -193,7 +185,7 @@ Status changes go through Postgres functions (`security definer`) so transitions
 ## Open items
 
 - [ ] Store contact details, pickup location and hours
-- [ ] Starting exchange rate and markup %
+- [x] Currency: GYD only, prices entered directly (no USD cost / exchange rate / markup)
 - [x] Order number format: `WS-1001`, `WS-1002`, … (invoice number format still open)
 - [ ] Domain name and sender email for Resend
 - [ ] Apparel: sell it (enter by hand) or drop it

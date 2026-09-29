@@ -1,5 +1,4 @@
-// Store prices are Guyanese dollars (GYD), whole units. Shown as "GYD 5,299" so they can't be
-// confused with the USD supplier costs admins work with.
+// Prices are Guyanese dollars (GYD), whole units, shown as "GYD 5,299". GYD is the only currency.
 const priceFormat = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "GYD",
@@ -13,11 +12,6 @@ export const PRICE_ON_REQUEST = "Price on request";
 export function formatPrice(price: number | null | undefined): string {
   if (price == null) return PRICE_ON_REQUEST;
   return priceFormat.format(price);
-}
-
-/** USD supplier costs (admin only). */
-export function formatUsd(amount: number): string {
-  return `US$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function imageUrl(storagePath: string): string {

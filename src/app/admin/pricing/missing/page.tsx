@@ -23,8 +23,8 @@ export default async function MissingPricesPage({ searchParams }: PageProps<"/ad
         <span className="opacity-65">{total} orderable variants</span>
       </div>
       <p className="max-w-2xl opacity-75">
-        These can still be ordered; customers see “Price on request” and you price them on the invoice. Enter USD costs
-        (or overrides) to show a price.
+        These can still be ordered; customers see “Price on request” and you price them on the invoice. Enter a GYD
+        price to show it in the store.
       </p>
       <form action="/admin/pricing/missing" className="flex flex-wrap gap-2">
         <input
@@ -36,7 +36,7 @@ export default async function MissingPricesPage({ searchParams }: PageProps<"/ad
         <button className="h-10 rounded-lg bg-navy px-4 font-medium text-cream-2">Filter</button>
         {prefix && (
           <Link href={`/admin/pricing/bulk?prefix=${prefix}`} className="flex h-10 items-center rounded-lg border border-navy/35 px-4 font-medium">
-            Enter costs for {prefix}…
+            Enter prices for {prefix}…
           </Link>
         )}
       </form>

@@ -95,9 +95,9 @@ export async function saveProductAction(id: string, input: ProductInput): Promis
 }
 
 // ---------------------------------------------------------------------------------------
-// Variant pricing and availability (also used by bulk cost entry)
+// Variant GYD price and availability (also used by bulk price entry)
 
-export type VariantChange = { id: string; usd_cost?: number | null; price_override?: number | null; is_orderable?: boolean };
+export type VariantChange = { id: string; price?: number | null; is_orderable?: boolean };
 
 export async function saveVariantsAction(changes: VariantChange[]): Promise<ActionResult> {
   const actor = await adminActor();
@@ -108,12 +108,10 @@ export async function saveVariantsAction(changes: VariantChange[]): Promise<Acti
   for (const c of changes) {
     if (!UUID.test(c?.id)) return fail("Unknown variant.");
     const row: VariantChange = { id: c.id };
-    for (const key of ["usd_cost", "price_override"] as const) {
-      if (!(key in c)) continue;
-      const v = c[key];
-      if (v === null) row[key] = null;
-      else if (typeof v === "number" && Number.isFinite(v) && v >= 0 && v < 1e8) row[key] = Math.round(v * 100) / 100;
-      else return fail(`Invalid ${key === "usd_cost" ? "cost" : "price override"}.`);
+    if ("price" in c) {
+      if (c.price === null) row.price = null;
+      else if (Number.isSafeInteger(c.price) && c.price! >= 0 && c.price! < 1e9) row.price = c.price;
+      else return fail("Prices must be whole GYD amounts.");
     }
     if ("is_orderable" in c) row.is_orderable = !!c.is_orderable;
     clean.push(row);
@@ -125,19 +123,6 @@ export async function saveVariantsAction(changes: VariantChange[]): Promise<Acti
   refreshStorefront();
   const n = data as number;
   return { ok: true, message: n === 0 ? "No changes." : `Saved ${n} ${n === 1 ? "variant" : "variants"}.` };
-}
-
-export async function saveSettingsAction(exchangeRate: number, markupPct: number): Promise<ActionResult> {
-  const actor = await adminActor();
-  if (!Number.isFinite(exchangeRate) || !Number.isFinite(markupPct)) return fail("Enter numbers for both fields.");
-  const { error } = await adminDb().rpc("admin_update_settings", {
-    p_actor: actor,
-    p_exchange_rate: exchangeRate,
-    p_markup_pct: markupPct,
-  });
-  if (error) return fail(error.code === "22023" ? error.message : `Couldn't save: ${error.message}`);
-  refreshStorefront();
-  return { ok: true, message: "Saved. Prices update everywhere immediately." };
 }
 
 // ---------------------------------------------------------------------------------------

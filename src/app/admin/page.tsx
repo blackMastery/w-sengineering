@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/local-time";
 import { requireAdmin } from "@/lib/admin/auth";
-import { getOverviewStats, getSettings, recentAudit } from "@/lib/admin/data";
+import { getOverviewStats, recentAudit } from "@/lib/admin/data";
+import { formatPrice } from "@/lib/format";
 
 export const metadata = { title: "Overview" };
 
@@ -26,12 +27,13 @@ function describe(e: Awaited<ReturnType<typeof recentAudit>>[number]) {
   const a = (e.after ?? {}) as Record<string, unknown>;
   const b = (e.before ?? {}) as Record<string, unknown>;
   if (e.entity === "variant") {
-    const parts = (["usd_cost", "price_override", "is_orderable"] as const)
-      .filter((k) => JSON.stringify(a[k]) !== JSON.stringify(b[k]))
-      .map((k) => `${k === "usd_cost" ? "cost" : k === "price_override" ? "override" : "orderable"} ${b[k] ?? "—"} → ${a[k] ?? "—"}`);
-    return `${a.sku ?? b.sku}: ${parts.join(", ")}`;
+    const show = (k: string, v: unknown) =>
+      v == null ? (k === "is_orderable" ? "—" : "on request") : k === "price" ? formatPrice(Number(v)) : String(v);
+    const parts = (["price", "is_orderable"] as const)
+      .filter((k) => k in a && JSON.stringify(a[k]) !== JSON.stringify(b[k]))
+      .map((k) => `${k === "price" ? "price" : "orderable"} ${show(k, b[k])} → ${show(k, a[k])}`);
+    return `${a.sku ?? b.sku}: ${parts.join(", ") || "updated"}`;
   }
-  if (e.entity === "settings") return `Exchange rate ${b.exchange_rate ?? "—"} → ${a.exchange_rate}, markup ${b.markup_pct ?? "—"}% → ${a.markup_pct}%`;
   if (e.entity === "product") return `Product ${e.action.replace("_", " ")}: ${Object.keys(a).concat(Object.keys(b)).filter((v, i, arr) => arr.indexOf(v) === i).join(", ")}`;
   if (e.entity === "order") return `Order ${a.number ?? ""} ${e.action}${a.status ? ` → ${a.status}` : ""}`;
   return `${e.entity} ${e.action}`;
@@ -39,21 +41,13 @@ function describe(e: Awaited<ReturnType<typeof recentAudit>>[number]) {
 
 export default async function AdminOverview() {
   await requireAdmin();
-  const [stats, settings, audit] = await Promise.all([getOverviewStats(), getSettings(), recentAudit()]);
+  const [stats, audit] = await Promise.all([getOverviewStats(), recentAudit()]);
   const pricedPct = stats.orderable ? Math.round(((stats.orderable - stats.unpriced) / stats.orderable) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-8">
       <h1 className="font-serif text-[32px] font-medium">Overview</h1>
 
-      {(settings.exchangeRate == null || settings.markupPct == null) && (
-        <p className="rounded-lg border border-gold/50 bg-gold-light/25 px-4 py-3">
-          No exchange rate or markup yet, so every product shows “Price on request”.{" "}
-          <Link href="/admin/pricing" className="font-medium underline">
-            Set pricing
-          </Link>
-        </p>
-      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
         <Stat label="Pending order requests" value={stats.pendingOrders} href="/admin/orders?status=pending" tone={stats.pendingOrders ? "warn" : undefined} />

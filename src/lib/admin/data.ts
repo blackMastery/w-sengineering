@@ -101,11 +101,9 @@ export type AdminVariant = {
   id: string;
   sku: string;
   option_values: Record<string, string>;
-  usd_cost: number | null;
-  price_override: number | null;
+  price: number | null; // GYD; null = Price on request
   is_orderable: boolean;
   sort: number;
-  price: number | null; // computed by variant_prices
 };
 
 export type AdminProduct = {
@@ -130,28 +128,26 @@ export type AdminProduct = {
 export async function getAdminProduct(id: string): Promise<AdminProduct | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const db = adminDb();
-  const [productRes, pricesRes, relatedRes] = await Promise.all([
+  const [productRes, relatedRes] = await Promise.all([
     db
       .from("products")
       .select(
         "id, slug, name, description, features, specs, brand_id, category_id, is_featured, is_new, needs_review, catalog_page, updated_at, " +
-          "variants(id, sku, option_values, usd_cost, price_override, is_orderable, sort), " +
+          "variants(id, sku, option_values, price, is_orderable, sort), " +
           "product_images(id, storage_path, sort, variant_id)",
       )
       .eq("id", id)
       .order("sort", { referencedTable: "variants" })
       .order("sort", { referencedTable: "product_images" })
       .maybeSingle(),
-    db.from("variant_prices").select("id, price").eq("product_id", id),
     db.from("related_products").select("related_id").eq("product_id", id),
   ]);
   const p = check(productRes) as unknown as (Omit<AdminProduct, "variants" | "images" | "related"> & {
-    variants: Omit<AdminVariant, "price">[];
+    variants: AdminVariant[];
     product_images: AdminProduct["images"];
   }) | null;
   if (!p) return null;
 
-  const priceById = new Map((check(pricesRes) as { id: string; price: number | null }[]).map((r) => [r.id, r.price]));
   const relatedIds = (check(relatedRes) as { related_id: string }[]).map((r) => r.related_id);
   const related = relatedIds.length
     ? (check(
@@ -163,7 +159,7 @@ export async function getAdminProduct(id: string): Promise<AdminProduct | null> 
     ...p,
     features: p.features ?? [],
     specs: p.specs ?? {},
-    variants: p.variants.map((v) => ({ ...v, price: priceById.get(v.id) ?? null })),
+    variants: p.variants,
     images: p.product_images,
     related,
   };
@@ -188,48 +184,31 @@ export async function getTaxonomy() {
 // ---------------------------------------------------------------------------------------
 // Pricing
 
-export async function getSettings() {
-  const row = check(await adminDb().from("settings").select("exchange_rate, markup_pct").eq("id", 1).maybeSingle()) as {
-    exchange_rate: number | null;
-    markup_pct: number | null;
-  } | null;
-  return { exchangeRate: row?.exchange_rate ?? null, markupPct: row?.markup_pct ?? null };
-}
-
 export type PricingRow = {
   id: string;
   sku: string;
   option_values: Record<string, string>;
-  usd_cost: number | null;
-  price_override: number | null;
+  price: number | null; // GYD
   is_orderable: boolean;
   product: { id: string; name: string; slug: string };
-  price: number | null;
 };
 
 const PRICING_LIMIT = 500;
 
-/** Variants whose SKU starts with a prefix, for bulk cost entry (at most 500). */
+/** Variants whose SKU starts with a prefix, for bulk price entry (at most 500). */
 export async function variantsByPrefix(prefix: string): Promise<{ rows: PricingRow[]; truncated: boolean }> {
   const p = prefix.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
   if (!p) return { rows: [], truncated: false };
   const db = adminDb();
   const res = await db
     .from("variants")
-    .select("id, sku, option_values, usd_cost, price_override, is_orderable, products(id, name, slug)", { count: "exact" })
+    .select("id, sku, option_values, price, is_orderable, products(id, name, slug)", { count: "exact" })
     .ilike("sku", `${p}%`)
     .order("sku")
     .limit(PRICING_LIMIT);
-  const rows = check(res) as unknown as (Omit<PricingRow, "price" | "product"> & { products: PricingRow["product"] })[];
-  // Same prefix filter rather than an id list: 500 ids would overflow the request URL.
-  const prices = rows.length
-    ? (check(
-        await db.from("variant_prices").select("id, price").ilike("sku", `${p}%`).order("sku").limit(PRICING_LIMIT),
-      ) as { id: string; price: number | null }[])
-    : [];
-  const priceById = new Map(prices.map((r) => [r.id, r.price]));
+  const rows = check(res) as unknown as (Omit<PricingRow, "product"> & { products: PricingRow["product"] })[];
   return {
-    rows: rows.map(({ products, ...r }) => ({ ...r, product: products, price: priceById.get(r.id) ?? null })),
+    rows: rows.map(({ products, ...r }) => ({ ...r, product: products })),
     truncated: (res.count ?? 0) > PRICING_LIMIT,
   };
 }

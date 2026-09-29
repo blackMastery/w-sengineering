@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { parseGyd } from "@/lib/admin/paste";
 import type { ActionResult } from "./actions";
 
 /** Runs an admin server action, shows its message, and refreshes server data on success. */
@@ -38,9 +39,8 @@ export function ActionMessage({ message }: { message: { ok: boolean; text: strin
   );
 }
 
-/** "" → null; "$1,234.50" → 1234.5; anything else → NaN (invalid). */
-export function parseMoney(input: string): number | null {
-  const s = input.replace(/[$,\s]/g, "");
-  if (s === "") return null;
-  return /^\d+(\.\d{1,2})?$/.test(s) ? Number(s) : Number.NaN;
+/** Price input: "" → null (Price on request); "5,299" / "GYD 5,299" → 5299; anything else → NaN. */
+export function parsePriceInput(input: string): number | null {
+  if (input.trim() === "") return null;
+  return parseGyd(input) ?? Number.NaN;
 }

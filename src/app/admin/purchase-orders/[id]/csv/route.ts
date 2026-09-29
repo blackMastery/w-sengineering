@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext<"/admi
     return `"${(/^[=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`;
   };
   const rows = [
-    ["PO", "SKU", "Description", "Options", "Qty", "Unit cost (USD)"],
+    ["PO", "SKU", "Description", "Options", "Qty"],
     ...po.lines.map((l) => [
       po.number,
       l.sku,
@@ -23,7 +23,6 @@ export async function GET(_request: NextRequest, { params }: RouteContext<"/admi
         .map(([k, v]) => `${k}: ${v}`)
         .join("; "),
       l.qty,
-      l.usd_cost == null ? "" : Number(l.usd_cost).toFixed(2),
     ]),
   ];
   const csv = rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";

@@ -230,7 +230,7 @@ export async function linesAwaitingPo() {
 
 export type PoDetail = PoSummary & {
   supplier_id: string;
-  lines: { id: string; sku: string; name: string; option_values: Record<string, string>; qty: number; usd_cost: number | null }[];
+  lines: { id: string; sku: string; name: string; option_values: Record<string, string>; qty: number }[];
   orders: { id: string; number: string; status: OrderStatus; contact_name: string }[];
 };
 
@@ -240,12 +240,12 @@ export async function getPurchaseOrder(id: string): Promise<PoDetail | null> {
   const po = check(
     await db
       .from("purchase_orders")
-      .select("id, number, status, supplier_id, created_at, sent_at, received_at, suppliers(name), po_lines(id, sku, name, option_values, qty, variant_id, variants(usd_cost))")
+      .select("id, number, status, supplier_id, created_at, sent_at, received_at, suppliers(name), po_lines(id, sku, name, option_values, qty)")
       .eq("id", id)
       .order("sku", { referencedTable: "po_lines" })
       .maybeSingle(),
   ) as unknown as (Omit<PoDetail, "lines" | "orders" | "po_lines"> & {
-    po_lines: { id: string; sku: string; name: string; option_values: Record<string, string>; qty: number; variants: { usd_cost: number | null } | null }[];
+    po_lines: { id: string; sku: string; name: string; option_values: Record<string, string>; qty: number }[];
   }) | null;
   if (!po) return null;
 
@@ -258,7 +258,7 @@ export async function getPurchaseOrder(id: string): Promise<PoDetail | null> {
   return {
     ...rest,
     po_lines: po_lines.map((l) => ({ qty: l.qty })),
-    lines: po_lines.map(({ variants, ...l }) => ({ ...l, usd_cost: variants?.usd_cost ?? null })),
+    lines: po_lines,
     orders,
   };
 }

@@ -2,7 +2,7 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { supabaseUrl } from "./config";
 
-// Service-role client: bypasses RLS and can read usd_cost. Only use it after
+// Service-role client: bypasses RLS. Only use it after
 // requireAdmin()/adminActor() has confirmed the caller is an admin.
 let client: SupabaseClient | undefined;
 

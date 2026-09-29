@@ -10,9 +10,9 @@ Stack: Next.js (App Router, TypeScript, Tailwind) · Supabase (Postgres, Auth, S
 - ✅ Photos uploaded to the hosted Storage bucket (`product-images/catalog/`, 1,300 files).
 - ✅ Build step 3, storefront (see "Storefront" below).
 - ✅ Build step 4 code: auth, cart merge, checkout, order placement, account pages; `supabase/migrations/0003_orders.sql` tested on local Supabase.
-- ✅ Build step 5 code: admin (`/admin`: overview, products, pricing, bulk costs, price-on-request list) + `supabase/migrations/0004_admin.sql`, tested on local Supabase.
+- ✅ Build step 5 code: admin (`/admin`: overview, products, bulk GYD prices, price-on-request list) + `supabase/migrations/0004_admin.sql`, tested on local Supabase.
 - ✅ Build step 6 code: order workflow (`/admin/orders`, `/admin/purchase-orders`, customer approve/reject) + `supabase/migrations/0005_workflow.sql`, tested on local Supabase. Statuses stop at Received; Invoiced → Paid → Delivered come with invoicing (step 7).
-- ⚠️ **0003–0005 are not on the hosted project yet** — the owner applies it (`supabase db push`). Until then hosted checkout/account pages fail. Also in the hosted dashboard: Authentication → URL Configuration (Site URL + redirect URLs incl. `/auth/confirm`), and paste `supabase/templates/*.html` into Authentication → Emails (confirm signup, reset password).
+- ✅ Prices are GYD-only (`supabase/migrations/0006_gyd_prices.sql`, tested locally incl. the backfill). ⚠️ **0006 is not on the hosted project yet** (0001–0005 are) — the owner applies it (`supabase db push`) **before deploying this code**: until then the admin product editor and bulk prices error on hosted (they read `variants.price`); the storefront keeps working. Also in the hosted dashboard: Authentication → URL Configuration (Site URL + redirect URLs incl. `/auth/confirm`), and paste `supabase/templates/*.html` into Authentication → Emails (confirm signup, reset password).
 - ⏭ Next: step 7, PDF invoices + Resend emails (`docs/SPEC.md` → Build order). Needs the owner's invoice number format and Resend domain/sender. Make yourself admin: `update profiles set role = 'admin' where id = '<auth user id>';`
 - **Node 22+ required** (`.nvmrc`): supabase-js needs native WebSocket, and Node 20 throws on client creation.
 
@@ -59,7 +59,7 @@ Local Supabase: `supabase start` then `supabase db reset` (config in `supabase/c
 ## Data rules (don't break these)
 
 - **Prices:** read `variant_prices.price` (Guyanese dollars, GYD, whole units; displayed as "GYD 5,299" by `formatPrice`). `null` → show **"Price on request"**; still orderable. Never compute price in the client.
-- **`usd_cost` is confidential.** anon/authenticated have no column grant on it. Admin features read/write it in server code with `SUPABASE_SERVICE_ROLE_KEY` (server-only module; never import into client components). Check `is_admin()` / `profiles.role` before using the service client.
+- **GYD only.** `variants.price` is whole Guyanese dollars, entered by admin (no USD cost, exchange rate or markup — removed in 0006). Admin writes use `SUPABASE_SERVICE_ROLE_KEY` in server code (server-only module; never import into client components); check `is_admin()` / `profiles.role` before using the service client.
 - **No stock.** `variants.is_orderable = false` means discontinued: hide it, block add-to-cart. No "in stock" / "only X left" UI anywhere.
 - **Variant picker:** options come from `product_options` (name + ordered `values`); a variant's `option_values` is `{ "Handle": "Cork", "Size": "14\"x4\"" }`. Only offer combinations that exist in `variants` (options are dependent, e.g. Size and Shank). Selecting updates SKU + price.
 - **Specs:** `products.specs` holds attributes that are the same for every variant; `products.features` is a bullet list.
@@ -84,7 +84,7 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
 - `src/lib/variant-picker.ts` — hierarchical option picker. Handles messy extraction data: variants missing an option key show as "Standard"; identical option combos fall through to a "Part #" chooser; options with one value are hidden.
 - `src/lib/cart-store.ts` + `components/cart/` — guest cart (`localStorage` key `ws-cart-v1`, variant id + qty). Line details come from the `cartLinesAction` server action; discontinued lines drop out.
 - `src/app/actions.ts` — server actions for search-as-you-type and cart lines.
-- Currency: GYD, formatted only in `src/lib/format.ts` (`formatPrice`). Admin USD costs use `formatUsd`.
+- Currency: GYD, formatted only in `src/lib/format.ts` (`formatPrice`); admin inputs parse with `parseGyd` (`src/lib/admin/paste.ts`).
 
 ## Accounts & orders (build step 4) — code map
 
@@ -98,9 +98,9 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
 ## Admin (build step 5) — code map
 
 - Guard: `src/lib/admin/auth.ts` — `requireAdmin()` in every admin page (layouts don't re-run on client navigation), `adminActor()` at the top of every admin server action (actions are public endpoints). Role is read from `profiles` with the service client.
-- `src/lib/supabase/admin.ts` service-role client (server-only); `src/lib/admin/data.ts` admin reads (incl. `usd_cost`); `src/app/admin/actions.ts` writes.
-- Pricing writes go through `admin_update_variants` / `admin_update_settings` (0004; service_role-only, atomic, one audit row per change). Product/photo/related edits write `audit_log` from the action.
-- 0004 also makes `settings` private (exchange rate + markup would let anyone back out `usd_cost`) and grants `service_role` table access explicitly (local projects don't by default).
+- `src/lib/supabase/admin.ts` service-role client (server-only); `src/lib/admin/data.ts` admin reads; `src/app/admin/actions.ts` writes.
+- Price writes go through `admin_update_variants` (0006 version: GYD `price` + `is_orderable`; service_role-only, atomic, one audit row per change). Product/photo/related edits write `audit_log` from the action.
+- 0004 grants `service_role` table access explicitly (local projects don't by default).
 - After any catalog edit call `refreshStorefront()` (`updateTag("catalog")` + `revalidatePath("/", "layout")`).
 - Bulk paste parser: `src/lib/admin/paste.ts` (SKU+cost lines, or a single column applied in row order).
 - Photo uploads go to `product-images/uploads/<product id>/…` (5 MB max; `serverActions.bodySizeLimit` is 6 MB). Removing a photo deletes the row only; the file stays in Storage.
@@ -137,4 +137,4 @@ Verify on a 375px viewport and desktop. Use server components for catalog reads.
 
 ## Open questions (ask the owner, don't guess)
 
-Store contact details / pickup location & hours · starting exchange rate and markup · invoice number format (orders are WS-1001…) · Resend domain and sender · whether to sell apparel.
+Store contact details / pickup location & hours · invoice number format (orders are WS-1001…) · Resend domain and sender · whether to sell apparel.

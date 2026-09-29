@@ -86,7 +86,7 @@ for p in P:
     for i, v in enumerate(vs):
         ov = {k: v["options"][k] for k in opt_keys if k in v["options"]}
         variants.append({"id": uid("variant", v["sku"]), "product_id": pid, "sku": v["sku"], "option_values": ov,
-                         "usd_cost": None, "price_override": None, "is_orderable": True, "sort": i})
+                         "price": None, "is_orderable": True, "sort": i})
         review.append([v["sku"], p["name"], p["catalog_page"], p["category"], p["brand"],
                        "; ".join(f"{k}: {x}" for k, x in ov.items()),
                        "yes" if products[-1]["needs_review"] else ""])
@@ -131,10 +131,8 @@ sql = ["-- Seed generated from Kraft Tool Co. Series 0126 catalog (PDF).",
        insert("products", ["id", "slug", "name", "category_id", "brand_id", "supplier_id", "description", "features",
                            "specs", "catalog_page", "is_featured", "is_new", "needs_review"], products),
        opt_rows(),
-       insert("variants", ["id", "product_id", "sku", "option_values", "usd_cost", "price_override",
-                           "is_orderable", "sort"], variants),
+       insert("variants", ["id", "product_id", "sku", "option_values", "price", "is_orderable", "sort"], variants),
        insert("product_images", ["id", "product_id", "variant_id", "storage_path", "sort"], images) if images else "",
-       "insert into public.settings (id, exchange_rate, markup_pct) values (1, null, null) on conflict (id) do nothing;\n",
        "commit;\n"]
 open("seed.sql", "w").write("\n".join(sql))
 

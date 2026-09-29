@@ -1,28 +1,18 @@
 import { requireAdmin } from "@/lib/admin/auth";
-import { getSettings, variantsByPrefix } from "@/lib/admin/data";
-import Link from "next/link";
+import { variantsByPrefix } from "@/lib/admin/data";
 import { BulkEditor } from "./bulk-editor";
 
-export const metadata = { title: "Bulk cost entry" };
+export const metadata = { title: "Bulk prices" };
 
-export default async function BulkCostsPage({ searchParams }: PageProps<"/admin/pricing/bulk">) {
+export default async function BulkPricesPage({ searchParams }: PageProps<"/admin/pricing/bulk">) {
   await requireAdmin("/admin/pricing/bulk");
   const raw = (await searchParams).prefix;
   const prefix = (typeof raw === "string" ? raw : "").toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
-  const [{ rows, truncated }, settings] = await Promise.all([variantsByPrefix(prefix), getSettings()]);
+  const { rows, truncated } = await variantsByPrefix(prefix);
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-serif text-[32px] font-medium">Bulk cost entry</h1>
-      {(settings.exchangeRate == null || settings.markupPct == null) && (
-        <p className="rounded-lg border border-gold/50 bg-gold-light/25 px-4 py-3">
-          Costs save fine, but prices stay “on request” until you{" "}
-          <Link href="/admin/pricing" className="font-medium underline">
-            set the exchange rate and markup
-          </Link>
-          .
-        </p>
-      )}
+      <h1 className="font-serif text-[32px] font-medium">Bulk prices</h1>
 
       <form action="/admin/pricing/bulk" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1">
