@@ -31,7 +31,7 @@ revoke all on public.order_changes from anon, authenticated;
 grant select on public.order_changes to authenticated;
 
 -- purchase orders --------------------------------------------------------------------
-create sequence public.po_number_seq start with 1001;
+create sequence if not exists public.po_number_seq start with 1001;
 
 create table public.purchase_orders (
   id uuid primary key default gen_random_uuid(),

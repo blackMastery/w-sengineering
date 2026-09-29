@@ -306,8 +306,8 @@ export type UnavailableProduct = {
 
 /**
  * A product slug with no live product behind it. Returns where it moved (renamed), a "no longer
- * available" page (archived, unpublished or fully discontinued after being live), or null (404;
- * drafts that were never published stay invisible).
+ * available" page (archived, or published with every variant discontinued), or null (404).
+ * Drafts — new or unpublished — are work in progress and stay invisible.
  */
 export async function resolveMissingProduct(slug: string): Promise<{ redirectTo: string } | { unavailable: UnavailableProduct } | null> {
   const db = adminDb(); // reads non-published products; returns only public-safe fields
@@ -332,7 +332,7 @@ export async function resolveMissingProduct(slug: string): Promise<{ redirectTo:
 
   const live = p.status === "published" && p.variants.some((v) => v.is_orderable);
   if (live && p.slug !== slug) return { redirectTo: p.slug };
-  if (!p.published_at) return null;
+  if (!p.published_at || p.status === "draft") return null;
   return {
     unavailable: {
       id: p.id,

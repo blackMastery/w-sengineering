@@ -55,7 +55,7 @@ grant select, insert, update, delete on public.cart_items to authenticated;
 
 -- orders -------------------------------------------------------------------------
 -- Order numbers: WS-1001, WS-1002, …
-create sequence public.order_number_seq start with 1001;
+create sequence if not exists public.order_number_seq start with 1001;
 
 create table public.orders (
   id uuid primary key default gen_random_uuid(),

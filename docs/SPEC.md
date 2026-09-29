@@ -106,7 +106,7 @@ The admin is the source of truth for the catalog after launch; the PDF pipeline 
 - **Delete:** hard delete only if the product was never ordered or on a PO (also deletes photos the admin uploaded; catalog photos are kept). Otherwise Delete archives.
 - **Duplicate:** copy details, options, variants (without SKUs) and photos into a new Draft.
 - **Slugs:** follow the name on rename; old slugs are kept in a redirect table. Same for category and group renames.
-- **Customers opening an archived/draft product** see "No longer available" with the name, photo and products from the same subcategory; no add to cart.
+- **Customers opening an archived product** (or one whose variants are all discontinued) see "No longer available" with the name, photo and products from the same subcategory; no add to cart. **Drafts** (new or unpublished) are "page not found".
 - **Archiving/unpublishing** a product in carts: carts drop it (checkout re-validates); open orders keep their lines and the admin is told which open orders contain it.
 
 **Options and variants**
