@@ -55,7 +55,7 @@ export default async function PurchaseOrderPage({ params }: PageProps<"/admin/pu
           {po.lines.length} SKUs · {units} units
         </h2>
         <div className="overflow-x-auto rounded-xl border border-navy/12">
-          <table className="w-full min-w-[560px] text-left text-[13.5px]">
+          <table className="w-full text-left text-[13.5px]">
             <thead className="bg-sand/60 font-mono text-[11px] tracking-wider uppercase">
               <tr>
                 <th className="px-3 py-2 font-medium">SKU</th>

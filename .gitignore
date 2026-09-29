@@ -16,3 +16,4 @@ next-env.d.ts
 
 
 data/
+.claude/launch.json

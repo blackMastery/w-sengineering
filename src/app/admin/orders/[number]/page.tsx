@@ -62,14 +62,14 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
           <section className="flex flex-col gap-2">
             <h2 className="font-serif text-2xl font-medium">Items</h2>
             <div className="overflow-x-auto rounded-xl border border-navy/12">
-              <table className="w-full min-w-[560px] text-left text-[13.5px]">
+              <table className="w-full text-left text-[13.5px] sm:min-w-[560px]">
                 <thead className="bg-sand/60 font-mono text-[11px] tracking-wider uppercase">
                   <tr>
                     <th className="px-3 py-2 font-medium">Item</th>
-                    <th className="px-3 py-2 text-right font-medium">Qty</th>
-                    <th className="px-3 py-2 text-right font-medium">Unit (GYD)</th>
+                    <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">Qty</th>
+                    <th className="hidden px-3 py-2 text-right font-medium sm:table-cell">Unit (GYD)</th>
                     <th className="px-3 py-2 text-right font-medium">Line</th>
-                    <th className="px-3 py-2 font-medium">PO</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">PO</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/8">
@@ -87,13 +87,26 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
                           {l.sku}
                           {Object.keys(l.option_values).length > 0 && <span className="font-sans"> · {describeOptions(l.option_values)}</span>}
                         </div>
+                        {/* Phones: qty, unit price and PO sit under the item instead of in their own columns. */}
+                        <div className="mt-0.5 text-[12.5px] tabular-nums sm:hidden">
+                          {l.qty} × {l.unit_price == null ? <span className="text-gold">On request</span> : formatPrice(Number(l.unit_price))}
+                          {l.po && (
+                            <>
+                              {" · "}
+                              <Link href={`/admin/purchase-orders/${l.po.id}`} className="font-mono text-[12px] underline">
+                                {l.po.number}
+                              </Link>{" "}
+                              <span className="opacity-60">({l.po.status})</span>
+                            </>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums">{l.qty}</td>
-                      <td className={`px-3 py-2 text-right tabular-nums ${l.unit_price == null ? "text-gold" : ""}`}>
+                      <td className="hidden px-3 py-2 text-right tabular-nums sm:table-cell">{l.qty}</td>
+                      <td className={`hidden px-3 py-2 text-right tabular-nums sm:table-cell ${l.unit_price == null ? "text-gold" : ""}`}>
                         {l.unit_price == null ? "On request" : formatPrice(Number(l.unit_price))}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{l.unit_price == null ? "—" : formatPrice(Number(l.unit_price) * l.qty)}</td>
-                      <td className="px-3 py-2">
+                      <td className="hidden px-3 py-2 sm:table-cell">
                         {l.po ? (
                           <Link href={`/admin/purchase-orders/${l.po.id}`} className="font-mono text-[12px] hover:underline">
                             {l.po.number} <span className="font-sans opacity-60">({l.po.status})</span>

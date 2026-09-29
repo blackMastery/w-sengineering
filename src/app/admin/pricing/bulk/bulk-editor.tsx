@@ -88,11 +88,14 @@ export function BulkEditor({ rows }: { rows: PricingRow[] }) {
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-navy/12">
-        <table className="w-full min-w-[560px] text-left text-[13px]">
+        <table className="w-full text-left text-[13px]">
           <thead className="bg-sand/60 font-mono text-[11px] tracking-wider uppercase">
             <tr>
-              <th className="px-3 py-2 font-medium">SKU</th>
-              <th className="px-3 py-2 font-medium">Product / options</th>
+              <th className="hidden px-3 py-2 font-medium sm:table-cell">SKU</th>
+              <th className="px-3 py-2 font-medium">
+                <span className="sm:hidden">SKU / product</span>
+                <span className="hidden sm:inline">Product / options</span>
+              </th>
               <th className="px-3 py-2 text-right font-medium">Price (GYD)</th>
             </tr>
           </thead>
@@ -102,11 +105,15 @@ export function BulkEditor({ rows }: { rows: PricingRow[] }) {
               const dirty = changes.some((c) => c.id === r.id);
               return (
                 <tr key={r.id} className={dirty ? "bg-gold-light/20" : !r.is_orderable ? "opacity-50" : ""}>
-                  <td className="px-3 py-1.5 font-mono font-medium">
+                  <td className="hidden px-3 py-1.5 font-mono font-medium sm:table-cell">
                     {r.sku}
                     {!r.is_orderable && <span className="ml-1.5 font-sans text-[11px] font-normal">(discontinued)</span>}
                   </td>
                   <td className="px-3 py-1.5">
+                    <div className="font-mono font-medium sm:hidden">
+                      {r.sku}
+                      {!r.is_orderable && <span className="ml-1.5 font-sans text-[11px] font-normal">(discontinued)</span>}
+                    </div>
                     <Link href={`/admin/products/${r.product.id}`} className="hover:underline">
                       {r.product.name}
                     </Link>
@@ -120,7 +127,7 @@ export function BulkEditor({ rows }: { rows: PricingRow[] }) {
                       onChange={(e) => setDrafts((d) => d.map((v, j) => (j === i ? e.target.value : v)))}
                       aria-invalid={Number.isNaN(parsed[i])}
                       placeholder="On request"
-                      className="h-9 w-28 rounded-md border border-navy/30 bg-white/70 px-2 text-right tabular-nums outline-none placeholder:text-gold/80 focus:border-navy aria-invalid:border-red-700"
+                      className="h-9 w-24 rounded-md sm:w-28 border border-navy/30 bg-white/70 px-2 text-right tabular-nums outline-none placeholder:text-gold/80 focus:border-navy aria-invalid:border-red-700"
                     />
                   </td>
                 </tr>

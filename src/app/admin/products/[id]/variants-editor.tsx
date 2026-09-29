@@ -149,7 +149,7 @@ export function VariantsEditor({
         <p className="text-[13px] opacity-70">This product has no options, so customers choose by part number.</p>
       )}
 
-      <div className="hidden grid-cols-[150px_minmax(0,1fr)_120px_92px_132px] gap-2 px-2 font-mono text-[11px] tracking-wider uppercase opacity-60 md:grid">
+      <div className="hidden grid-cols-[150px_minmax(0,1fr)_120px_92px_132px] gap-2 px-2 font-mono text-[11px] tracking-wider uppercase opacity-60 xl:grid">
         <span>SKU</span>
         <span>Options</span>
         <span className="text-right">Price (GYD)</span>
@@ -157,19 +157,19 @@ export function VariantsEditor({
         <span />
       </div>
 
-      <ul className="flex flex-col gap-2 md:gap-0">
+      <ul className="flex flex-col gap-2 xl:gap-0">
         {rows.map((r, i) => {
           const err = errors.get(r.key);
           const hist = r.id ? ordered.has(r.id) : false;
           return (
             <li
               key={r.key}
-              className={`grid gap-2 rounded-xl border p-2.5 md:grid-cols-[150px_minmax(0,1fr)_120px_92px_132px] md:items-center md:rounded-none md:border-0 md:border-b md:border-navy/10 md:px-2 md:py-1.5 ${
+              className={`grid gap-2 rounded-xl border p-2.5 xl:grid-cols-[150px_minmax(0,1fr)_120px_92px_132px] xl:items-center xl:rounded-none xl:border-0 xl:border-b xl:border-navy/10 xl:px-2 xl:py-1.5 ${
                 r.deleted ? "border-red-800/20 bg-red-50/40 opacity-70" : isDupe(r) ? "border-gold/60 bg-gold-light/15" : "border-navy/12"
               }`}
             >
               {r.deleted ? (
-                <div className="flex items-center justify-between gap-2 md:col-span-5">
+                <div className="flex items-center justify-between gap-2 xl:col-span-5">
                   <span className="text-[13px]">
                     <s className="font-mono">{r.sku || "(no SKU)"}</s> will be {hist ? "discontinued (it has order history)" : "deleted"}.
                   </span>
@@ -179,8 +179,8 @@ export function VariantsEditor({
                 </div>
               ) : (
                 <>
-                  <label className="flex flex-col gap-1 md:block">
-                    <span className="text-[12px] font-medium opacity-70 md:sr-only">SKU</span>
+                  <label className="flex flex-col gap-1 xl:block">
+                    <span className="text-[12px] font-medium opacity-70 xl:sr-only">SKU</span>
                     <input
                       value={r.sku}
                       onChange={(e) => patch(i, { sku: e.target.value })}
@@ -195,7 +195,7 @@ export function VariantsEditor({
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {options.map((o) => (
-                      <label key={o.name} className="flex min-w-[45%] flex-1 flex-col gap-1 md:min-w-0">
+                      <label key={o.name} className="flex min-w-[45%] flex-1 flex-col gap-1 xl:min-w-0">
                         <span className="text-[12px] opacity-60">{o.name}</span>
                         <select
                           value={r.opts[o.name] ?? ""}
@@ -215,9 +215,9 @@ export function VariantsEditor({
                     ))}
                     {options.length === 0 && <span className="self-center text-[13px] opacity-50">—</span>}
                   </div>
-                  <div className="flex items-end gap-3 md:contents">
-                    <label className="flex flex-1 flex-col gap-1 md:block">
-                      <span className="text-[12px] font-medium opacity-70 md:sr-only">Price (GYD)</span>
+                  <div className="flex items-end gap-3 xl:contents">
+                    <label className="flex flex-1 flex-col gap-1 xl:block">
+                      <span className="text-[12px] font-medium opacity-70 xl:sr-only">Price (GYD)</span>
                       <input
                         value={r.price}
                         onChange={(e) => patch(i, { price: e.target.value })}
@@ -228,7 +228,7 @@ export function VariantsEditor({
                         aria-label={`Price in GYD, row ${i + 1}`}
                       />
                     </label>
-                    <label className="flex h-10 items-center gap-2 md:justify-center">
+                    <label className="flex h-10 items-center gap-2 xl:justify-center">
                       <input
                         type="checkbox"
                         checked={r.orderable}
@@ -236,7 +236,7 @@ export function VariantsEditor({
                         className="size-5 accent-navy"
                         aria-label={`Orderable, row ${i + 1}`}
                       />
-                      <span aria-hidden className="text-[13px] md:sr-only">Orderable</span>
+                      <span aria-hidden className="text-[13px] xl:sr-only">Orderable</span>
                     </label>
                   </div>
                   <div className="flex items-center justify-end gap-1.5">
@@ -256,7 +256,7 @@ export function VariantsEditor({
                     </button>
                   </div>
                   {(err || isDupe(r)) && (
-                    <p className={`text-[12.5px] md:col-span-5 ${err ? "text-red-800" : "text-gold"}`}>
+                    <p className={`text-[12.5px] xl:col-span-5 ${err ? "text-red-800" : "text-gold"}`}>
                       {err ?? "Same options as another variant: customers will pick by part number."}
                     </p>
                   )}

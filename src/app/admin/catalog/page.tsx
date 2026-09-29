@@ -9,7 +9,7 @@ export default async function CatalogPage() {
   const taxonomy = await getTaxonomy();
   return (
     <div className="flex max-w-4xl flex-col gap-5">
-      <h1 className="font-serif text-[32px] font-medium">Categories & brands</h1>
+      <h1 className="font-serif text-[32px] leading-tight font-medium">Categories & brands</h1>
       <CatalogEditor taxonomy={taxonomy} />
     </div>
   );

@@ -14,7 +14,7 @@ export default async function PurchaseOrdersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-serif text-[32px] font-medium">Purchase orders</h1>
+      <h1 className="font-serif text-[32px] leading-tight font-medium">Purchase orders</h1>
 
       <section className="flex flex-col gap-2 rounded-xl border border-navy/12 p-4">
         <h2 className="font-serif text-xl font-medium">Ready to order</h2>
@@ -32,7 +32,33 @@ export default async function PurchaseOrdersPage() {
         <BuildButton disabled={waiting.lines === 0} />
       </section>
 
-      <div className="overflow-x-auto rounded-xl border border-navy/12">
+      {/* Phones: one card per PO, so status and totals are visible without scrolling sideways. */}
+      <ul className="flex flex-col gap-2 md:hidden">
+        {pos.map((po) => (
+          <li key={po.id}>
+            <Link href={`/admin/purchase-orders/${po.id}`} className="flex flex-col gap-2 rounded-xl border border-navy/12 p-3 active:bg-sand/40">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="font-mono font-medium">{po.number}</span>
+                  <div className="text-[12px] opacity-60">
+                    <LocalTime iso={po.received_at ?? po.sent_at ?? po.created_at} />
+                  </div>
+                </div>
+                <span className={`rounded-full px-2.5 py-1 font-mono text-[11px] font-medium capitalize ${TONE[po.status]}`}>{po.status}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 truncate">{po.suppliers.name}</span>
+                <span className="flex-none text-[12.5px] tabular-nums opacity-70">
+                  {po.po_lines.length} SKUs · {po.po_lines.reduce((n, l) => n + l.qty, 0)} units
+                </span>
+              </div>
+            </Link>
+          </li>
+        ))}
+        {pos.length === 0 && <li className="rounded-xl border border-navy/12 px-3 py-8 text-center opacity-70">No purchase orders yet.</li>}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-navy/12 md:block">
         <table className="w-full min-w-[560px] text-left text-[13.5px]">
           <thead className="bg-sand/60 font-mono text-[11px] tracking-wider uppercase">
             <tr>

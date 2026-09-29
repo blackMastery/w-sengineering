@@ -14,7 +14,7 @@ export default async function NewProductPage() {
         <Link href="/admin/products" className="text-[13px] underline opacity-70">
           ← Products
         </Link>
-        <h1 className="mt-1 font-serif text-[32px] font-medium">New product</h1>
+        <h1 className="mt-1 font-serif text-[32px] leading-tight font-medium">New product</h1>
       </div>
       <NewProductForm brands={brands} groups={groups} categories={categories} />
     </div>

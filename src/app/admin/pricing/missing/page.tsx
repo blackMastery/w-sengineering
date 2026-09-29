@@ -19,7 +19,7 @@ export default async function MissingPricesPage({ searchParams }: PageProps<"/ad
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-baseline gap-3">
-        <h1 className="font-serif text-[32px] font-medium">Price on request</h1>
+        <h1 className="font-serif text-[32px] leading-tight font-medium">Price on request</h1>
         <span className="opacity-65">{total} orderable variants</span>
       </div>
       <p className="max-w-2xl opacity-75">
@@ -42,7 +42,7 @@ export default async function MissingPricesPage({ searchParams }: PageProps<"/ad
       </form>
 
       <div className="overflow-x-auto rounded-xl border border-navy/12">
-        <table className="w-full min-w-[560px] text-left text-[13px]">
+        <table className="w-full text-left text-[13px]">
           <thead className="bg-sand/60 font-mono text-[11px] tracking-wider uppercase">
             <tr>
               <th className="px-3 py-2 font-medium">SKU</th>

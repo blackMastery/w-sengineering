@@ -43,11 +43,11 @@ export function SearchTrigger() {
       <button
         type="button"
         onClick={openSearch}
-        className="hidden h-10 max-w-md min-w-40 flex-1 items-center gap-2.5 rounded-lg border border-cream-2/20 bg-cream-2/10 px-3 text-left text-sm text-cream-2/80 hover:bg-cream-2/15 md:flex"
+        className="hidden h-10 max-w-md min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-cream-2/20 bg-cream-2/10 px-3 text-left text-sm text-cream-2/80 hover:bg-cream-2/15 md:flex"
       >
         <SearchIcon />
         <span className="flex-1 truncate">Search tools or part #</span>
-        <kbd className="rounded border border-cream-2/30 px-1.5 py-0.5 font-mono text-[11px]">⌘K</kbd>
+        <kbd className="hidden rounded border border-cream-2/30 px-1.5 py-0.5 font-mono text-[11px] lg:inline">⌘K</kbd>
       </button>
     </>
   );

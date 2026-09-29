@@ -12,7 +12,7 @@ export default async function BulkPricesPage({ searchParams }: PageProps<"/admin
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="font-serif text-[32px] font-medium">Bulk prices</h1>
+      <h1 className="font-serif text-[32px] leading-tight font-medium">Bulk prices</h1>
 
       <form action="/admin/pricing/bulk" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1">

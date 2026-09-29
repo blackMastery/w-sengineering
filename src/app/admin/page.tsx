@@ -46,7 +46,7 @@ export default async function AdminOverview() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="font-serif text-[32px] font-medium">Overview</h1>
+      <h1 className="font-serif text-[32px] leading-tight font-medium">Overview</h1>
 
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">

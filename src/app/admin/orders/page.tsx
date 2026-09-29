@@ -17,6 +17,33 @@ const NEXT_STEP: Partial<Record<OrderStatus, string>> = {
   received: "Arrived. Invoicing comes in the next build step.",
 };
 
+type OrderRow = Awaited<ReturnType<typeof listAdminOrders>>["rows"][number];
+
+const itemCount = (o: OrderRow) => o.order_lines.reduce((n, l) => n + l.qty, 0);
+
+function OrderStatusCell({ order: o }: { order: OrderRow }) {
+  return (
+    <div>
+      <StatusPill status={o.status} admin />
+      {o.status === "awaiting_approval" && o.waitingDays >= 1 && (
+        <div className={`mt-0.5 text-[11.5px] ${o.waitingDays >= 3 ? "font-medium text-red-800" : "opacity-60"}`}>
+          waiting {o.waitingDays} {o.waitingDays === 1 ? "day" : "days"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EstimateCell({ order: o }: { order: OrderRow }) {
+  const unpriced = o.order_lines.filter((l) => l.unit_price == null).length;
+  return (
+    <>
+      {formatPrice(Number(o.estimate_total))}
+      {unpriced > 0 && <div className="text-[11.5px] text-gold">+{unpriced} on request</div>}
+    </>
+  );
+}
+
 export default async function AdminOrdersPage({ searchParams }: PageProps<"/admin/orders">) {
   await requireAdmin("/admin/orders");
   const sp = await searchParams;
@@ -32,7 +59,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-baseline gap-3">
-        <h1 className="font-serif text-[32px] font-medium">Orders</h1>
+        <h1 className="font-serif text-[32px] leading-tight font-medium">Orders</h1>
         <span className="opacity-65">{total}</span>
       </div>
 
@@ -66,7 +93,37 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
         <button className="h-10 rounded-lg bg-navy px-4 font-medium text-cream-2">Search</button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-navy/12">
+      {/* Phones: one card per order, so status and estimate are visible without scrolling sideways. */}
+      <ul className="flex flex-col gap-2 md:hidden">
+        {rows.map((o) => (
+          <li key={o.id}>
+            <Link href={`/admin/orders/${o.number}`} className="flex flex-col gap-2 rounded-xl border border-navy/12 p-3 active:bg-sand/40">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="font-mono font-medium">{o.number}</span>
+                  <div className="text-[12px] opacity-60">
+                    <LocalTime iso={o.created_at} /> · {o.fulfillment === "pickup" ? "Pickup" : "Delivery"}
+                  </div>
+                </div>
+                <OrderStatusCell order={o} />
+              </div>
+              <div className="flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate">{o.contact_name}</div>
+                  <div className="text-[12px] opacity-60">{o.contact_phone}</div>
+                </div>
+                <div className="flex-none text-right tabular-nums">
+                  <EstimateCell order={o} />
+                  <div className="text-[12px] opacity-60">{itemCount(o)} {itemCount(o) === 1 ? "item" : "items"}</div>
+                </div>
+              </div>
+            </Link>
+          </li>
+        ))}
+        {rows.length === 0 && <li className="rounded-xl border border-navy/12 px-3 py-8 text-center opacity-70">No orders here.</li>}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-navy/12 md:block">
         <table className="w-full min-w-[680px] text-left text-[13.5px]">
           <thead className="bg-sand/60 font-mono text-[11px] tracking-wider uppercase">
             <tr>
@@ -78,11 +135,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
             </tr>
           </thead>
           <tbody className="divide-y divide-navy/8">
-            {rows.map((o) => {
-              const items = o.order_lines.reduce((n, l) => n + l.qty, 0);
-              const unpriced = o.order_lines.filter((l) => l.unit_price == null).length;
-              const { waitingDays } = o;
-              return (
+            {rows.map((o) => (
                 <tr key={o.id} className="hover:bg-sand/40">
                   <td className="px-3 py-2">
                     <Link href={`/admin/orders/${o.number}`} className="font-mono font-medium hover:underline">
@@ -97,21 +150,14 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
                     <div className="text-[12px] opacity-60">{o.contact_phone}</div>
                   </td>
                   <td className="px-3 py-2">
-                    <StatusPill status={o.status} admin />
-                    {o.status === "awaiting_approval" && waitingDays >= 1 && (
-                      <div className={`mt-0.5 text-[11.5px] ${waitingDays >= 3 ? "font-medium text-red-800" : "opacity-60"}`}>
-                        waiting {waitingDays} {waitingDays === 1 ? "day" : "days"}
-                      </div>
-                    )}
+                    <OrderStatusCell order={o} />
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{items}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{itemCount(o)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {formatPrice(Number(o.estimate_total))}
-                    {unpriced > 0 && <div className="text-[11.5px] text-gold">+{unpriced} on request</div>}
+                    <EstimateCell order={o} />
                   </td>
                 </tr>
-              );
-            })}
+            ))}
             {rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-8 text-center opacity-70">
