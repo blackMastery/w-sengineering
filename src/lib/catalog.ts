@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { adminDb } from "./supabase/admin";
 import { publicDb } from "./supabase/public";
 import type { Group, ProductCard, ProductDetail, SearchResult, CartLineInfo, Variant } from "./types";
 
@@ -279,17 +280,90 @@ export async function getRelated(product: ProductDetail, limit = 4): Promise<{ p
     if (products.length > 0) return { products, curated: true };
   }
 
-  // No manual picks yet: neighbours from the same subcategory, preferring ones with photos.
+  // No manual picks yet: neighbours from the same subcategory.
+  return { products: await getCategoryNeighbours(product.category.id, product.id, limit), curated: false };
+}
+
+/** Other live products in a subcategory, preferring ones with photos. */
+export async function getCategoryNeighbours(categoryId: string, excludeId: string, limit = 4): Promise<ProductCard[]> {
   const rows = check(
-    await publicDb
-      .from("products")
-      .select(CARD_SELECT)
-      .eq("category_id", product.category.id)
-      .neq("id", product.id)
-      .limit(24),
+    await publicDb.from("products").select(CARD_SELECT).eq("category_id", categoryId).neq("id", excludeId).limit(24),
   ) as unknown as CardRow[];
   const cards = toCards(rows);
-  return { products: [...cards.filter((c) => c.image), ...cards.filter((c) => !c.image)].slice(0, limit), curated: false };
+  return [...cards.filter((c) => c.image), ...cards.filter((c) => !c.image)].slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------------------
+// Slugs that don't resolve to a live product or category
+
+export type UnavailableProduct = {
+  id: string;
+  name: string;
+  image: string | null;
+  category: { id: string; name: string; slug: string };
+  group: { name: string; slug: string };
+};
+
+/**
+ * A product slug with no live product behind it. Returns where it moved (renamed), a "no longer
+ * available" page (archived, unpublished or fully discontinued after being live), or null (404;
+ * drafts that were never published stay invisible).
+ */
+export async function resolveMissingProduct(slug: string): Promise<{ redirectTo: string } | { unavailable: UnavailableProduct } | null> {
+  const db = adminDb(); // reads non-published products; returns only public-safe fields
+  const { data: redirect } = await db.from("slug_redirects").select("target_id").eq("kind", "product").eq("old_slug", slug).maybeSingle();
+  const query = db
+    .from("products")
+    .select("id, slug, name, status, published_at, categories(id, name, slug, category_groups(name, slug)), product_images(storage_path, sort), variants(is_orderable)")
+    .order("sort", { referencedTable: "product_images" })
+    .limit(1, { referencedTable: "product_images" });
+  const { data } = redirect ? await query.eq("id", redirect.target_id).maybeSingle() : await query.eq("slug", slug).maybeSingle();
+  const p = data as unknown as {
+    id: string;
+    slug: string;
+    name: string;
+    status: string;
+    published_at: string | null;
+    categories: { id: string; name: string; slug: string; category_groups: { name: string; slug: string } };
+    product_images: { storage_path: string }[];
+    variants: { is_orderable: boolean }[];
+  } | null;
+  if (!p) return null;
+
+  const live = p.status === "published" && p.variants.some((v) => v.is_orderable);
+  if (live && p.slug !== slug) return { redirectTo: p.slug };
+  if (!p.published_at) return null;
+  return {
+    unavailable: {
+      id: p.id,
+      name: p.name,
+      image: p.product_images[0]?.storage_path ?? null,
+      category: { id: p.categories.id, name: p.categories.name, slug: p.categories.slug },
+      group: p.categories.category_groups,
+    },
+  };
+}
+
+/** Current path for an old or moved /c/{group}[/{category}] URL, or null if there's none. */
+export async function resolveCategoryPath(groupSlug: string, categorySlug?: string): Promise<string | null> {
+  const groups = await getGroups();
+  const lookup = async (kind: "group" | "category", slug: string) =>
+    (await publicDb.from("slug_redirects").select("target_id").eq("kind", kind).eq("old_slug", slug).maybeSingle()).data?.target_id as
+      | string
+      | undefined;
+
+  if (categorySlug) {
+    let hit = groups.flatMap((g) => g.categories.map((c) => ({ g, c }))).find((x) => x.c.slug === categorySlug);
+    if (!hit) {
+      const id = await lookup("category", categorySlug);
+      hit = id ? groups.flatMap((g) => g.categories.map((c) => ({ g, c }))).find((x) => x.c.id === id) : undefined;
+    }
+    return hit ? `/c/${hit.g.slug}/${hit.c.slug}` : null;
+  }
+
+  const id = await lookup("group", groupSlug);
+  const g = id ? groups.find((x) => x.id === id) : undefined;
+  return g ? `/c/${g.slug}` : null;
 }
 
 // ---------------------------------------------------------------------------------------

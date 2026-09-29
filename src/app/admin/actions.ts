@@ -1,23 +1,13 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { type ActionResult, dbError, fail, refreshStorefront, UUID } from "@/lib/admin/action-helpers";
 import { adminActor } from "@/lib/admin/auth";
 import { searchAdminProducts } from "@/lib/admin/data";
-import { CATALOG_TAG } from "@/lib/catalog";
 import { adminDb } from "@/lib/supabase/admin";
 
 // Every action re-checks the admin role: server actions are public endpoints.
 
-export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
-
-const UUID = /^[0-9a-f-]{36}$/i;
-const fail = (error: string): ActionResult => ({ ok: false, error });
-
-/** Storefront caches: the nav/showcase data cache and prerendered pages. */
-function refreshStorefront() {
-  updateTag(CATALOG_TAG);
-  revalidatePath("/", "layout");
-}
+export type { ActionResult } from "@/lib/admin/action-helpers";
 
 async function audit(actor: string, entity: string, entityId: string, action: string, before: unknown, after: unknown) {
   await adminDb().from("audit_log").insert({ actor_id: actor, entity, entity_id: entityId, action, before, after });
@@ -38,27 +28,32 @@ export type ProductInput = {
   needs_review: boolean;
 };
 
-export async function saveProductAction(id: string, input: ProductInput): Promise<ActionResult> {
-  const actor = await adminActor();
-  if (!UUID.test(id)) return fail("Unknown product.");
+type ProductFields = {
+  name: string;
+  description: string | null;
+  features: string[];
+  specs: Record<string, string>;
+  brand_id: string;
+  category_id: string;
+  is_featured: boolean;
+  is_new: boolean;
+  needs_review: boolean;
+};
 
-  const name = String(input.name ?? "").trim().slice(0, 200);
-  if (!name) return fail("Name is required.");
-  if (!UUID.test(input.brand_id) || !UUID.test(input.category_id)) return fail("Choose a brand and category.");
-  const features = (Array.isArray(input.features) ? input.features : [])
-    .map((f) => String(f).trim().slice(0, 300))
-    .filter(Boolean)
-    .slice(0, 30);
+function cleanProduct(input: ProductInput): ProductFields | string {
+  const name = String(input?.name ?? "").trim().slice(0, 200);
+  if (!name) return "Name is required.";
+  if (!UUID.test(input.brand_id) || !UUID.test(input.category_id)) return "Choose a brand and category.";
   const specs: Record<string, string> = {};
   for (const pair of Array.isArray(input.specs) ? input.specs : []) {
     const k = String(pair?.[0] ?? "").trim().slice(0, 60);
     const v = String(pair?.[1] ?? "").trim().slice(0, 200);
     if (k && v) specs[k] = v;
   }
-  const next = {
+  return {
     name,
     description: String(input.description ?? "").trim().slice(0, 4000) || null,
-    features,
+    features: (Array.isArray(input.features) ? input.features : []).map((f) => String(f).trim().slice(0, 300)).filter(Boolean).slice(0, 30),
     specs,
     brand_id: input.brand_id,
     category_id: input.category_id,
@@ -66,32 +61,33 @@ export async function saveProductAction(id: string, input: ProductInput): Promis
     is_new: !!input.is_new,
     needs_review: !!input.needs_review,
   };
+}
 
-  const db = adminDb();
-  const { data: before, error: readError } = await db
-    .from("products")
-    .select("slug, name, description, features, specs, brand_id, category_id, is_featured, is_new, needs_review")
-    .eq("id", id)
-    .maybeSingle();
-  if (readError || !before) return fail("Product not found.");
+/**
+ * Save product details. `original` is what the editor loaded; only changed fields are sent,
+ * and the database refuses the save if someone else changed those fields meanwhile.
+ */
+export async function saveProductAction(id: string, input: ProductInput, original: ProductInput): Promise<ActionResult & { slug?: string }> {
+  const actor = await adminActor();
+  if (!UUID.test(id)) return fail("Unknown product.");
+  const next = cleanProduct(input);
+  if (typeof next === "string") return fail(next);
+  const before = cleanProduct(original);
+  if (typeof before === "string") return fail("Reload the page and try again.");
 
-  const changed = Object.fromEntries(
-    Object.entries(next).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k as keyof typeof before])),
-  );
-  if (Object.keys(changed).length === 0) return { ok: true, message: "No changes." };
+  const keys = (Object.keys(next) as (keyof ProductFields)[]).filter((k) => JSON.stringify(next[k]) !== JSON.stringify(before[k]));
+  if (keys.length === 0) return { ok: true, message: "No changes." };
 
-  const { error } = await db.from("products").update({ ...changed, updated_at: new Date().toISOString() }).eq("id", id);
-  if (error) return fail(`Couldn't save: ${error.message}`);
-  await audit(
-    actor,
-    "product",
-    id,
-    "edit",
-    Object.fromEntries(Object.keys(changed).map((k) => [k, before[k as keyof typeof before]])),
-    changed,
-  );
+  const { data, error } = await adminDb().rpc("admin_update_product", {
+    p_actor: actor,
+    p_id: id,
+    p_fields: Object.fromEntries(keys.map((k) => [k, next[k]])),
+    p_expected: Object.fromEntries(keys.map((k) => [k, before[k]])),
+  });
+  if (error) return dbError(error);
   refreshStorefront();
-  return { ok: true, message: "Saved." };
+  const slug = (data as { slug: string }).slug;
+  return { ok: true, message: keys.includes("name") ? "Saved. The product’s web address changed; the old one redirects." : "Saved.", slug };
 }
 
 // ---------------------------------------------------------------------------------------

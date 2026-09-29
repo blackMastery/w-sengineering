@@ -44,7 +44,7 @@ export function ImagesEditor({ product }: { product: AdminProduct }) {
                 <option value="">All variants</option>
                 {product.variants.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.sku}
+                    {v.sku ?? "(no SKU yet)"}
                   </option>
                 ))}
               </select>

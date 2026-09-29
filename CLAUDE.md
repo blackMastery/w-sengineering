@@ -12,6 +12,7 @@ Stack: Next.js (App Router, TypeScript, Tailwind) · Supabase (Postgres, Auth, S
 - ✅ Build step 4 code: auth, cart merge, checkout, order placement, account pages; `supabase/migrations/0003_orders.sql` tested on local Supabase.
 - ✅ Build step 5 code: admin (`/admin`: overview, products, bulk GYD prices, price-on-request list) + `supabase/migrations/0004_admin.sql`, tested on local Supabase.
 - ✅ Build step 6 code: order workflow (`/admin/orders`, `/admin/purchase-orders`, customer approve/reject) + `supabase/migrations/0005_workflow.sql`, tested on local Supabase. Statuses stop at Received; Invoiced → Paid → Delivered come with invoicing (step 7).
+- ✅ Catalog management (products, options, variants, brands, categories): `supabase/migrations/0007_catalog_crud.sql`, tested locally. ⚠️ **0007 is not on the hosted project yet.**
 - ✅ Prices are GYD-only (`supabase/migrations/0006_gyd_prices.sql`, tested locally incl. the backfill). ⚠️ **0006 is not on the hosted project yet** (0001–0005 are) — the owner applies it (`supabase db push`) **before deploying this code**: until then the admin product editor and bulk prices error on hosted (they read `variants.price`); the storefront keeps working. Also in the hosted dashboard: Authentication → URL Configuration (Site URL + redirect URLs incl. `/auth/confirm`), and paste `supabase/templates/*.html` into Authentication → Emails (confirm signup, reset password).
 - ⏭ Next: step 7, PDF invoices + Resend emails (`docs/SPEC.md` → Build order). Needs the owner's invoice number format and Resend domain/sender. Make yourself admin: `update profiles set role = 'admin' where id = '<auth user id>';`
 - **Node 22+ required** (`.nvmrc`): supabase-js needs native WebSocket, and Node 20 throws on client creation.
@@ -105,6 +106,15 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
 - Bulk paste parser: `src/lib/admin/paste.ts` (SKU+cost lines, or a single column applied in row order).
 - Photo uploads go to `product-images/uploads/<product id>/…` (5 MB max; `serverActions.bodySizeLimit` is 6 MB). Removing a photo deletes the row only; the file stays in Storage.
 - Avoid `.in("id", hugeList)`: ~500 UUIDs overflow the PostgREST URL.
+
+## Catalog management — code map (spec: docs/SPEC.md → Catalog management)
+
+- 0007: `products.status` draft/published/archived (+ `published_at`, set by trigger). RLS: the public reads **published products only** (also their variants/options/images/related). `variant_prices.is_orderable` = variant orderable **and** product published, so carts, checkout, `place_order`, `merge_cart` and search drop unpublished products with no other code.
+- SKUs: `normalize_sku()` (trim, upper, spaces → `-`), check `^[A-Z0-9][A-Z0-9/-]*$`, nullable only for drafts (duplicates). make_seed.py normalises too but keeps variant ids from the original SKU.
+- Renames keep old slugs in `slug_redirects` (product/category/group); `resolveMissingProduct` / `resolveCategoryPath` in `src/lib/catalog.ts` redirect or show "No longer available" (only for products that were once published).
+- Write functions (service_role, audited, all-or-nothing): `admin_create_product`, `admin_update_product` (expected-values conflict check), `admin_bulk_update_products`, `admin_set_product_status` (publish checklist = `publish_problems()`), `admin_delete_product` (archives if ordered/on a PO; returns uploaded photo paths to delete), `admin_duplicate_product`, `admin_save_options` (renames propagate; removed in-use values need the flag), `admin_save_variants` (create/update/delete ops with `expect`), `admin_save_brand` / `admin_delete_brand`, `admin_save_category` / `admin_delete_category`, `admin_rename_group`, `admin_reorder`.
+- UI: `src/app/admin/products/` (list + bulk bar, `new/`, `[id]/` editor: status bar, details, options, variants, photos, related), `src/app/admin/catalog/` (groups, categories, brands). Shared: `useAdminAction` (goTo, conflict → Reload), `useUnsavedGuard`.
+- Editors reset drafts only when the saved data changes (content signature), so saving one section never wipes another's unsaved edits.
 
 ## Order workflow (build step 6) — code map
 

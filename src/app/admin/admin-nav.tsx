@@ -15,7 +15,13 @@ const SECTIONS: { title: string; links: NavLink[] }[] = [
       { href: "/admin/purchase-orders", label: "Purchase orders" },
     ],
   },
-  { title: "Catalog", links: [{ href: "/admin/products", label: "Products" }] },
+  {
+    title: "Catalog",
+    links: [
+      { href: "/admin/products", label: "Products" },
+      { href: "/admin/catalog", label: "Categories & brands" },
+    ],
+  },
   {
     title: "Prices (GYD)",
     links: [

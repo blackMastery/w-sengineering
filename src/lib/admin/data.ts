@@ -13,8 +13,14 @@ export function cleanSearch(q: string | undefined): string {
   return (q ?? "").replace(/[,()*%\\:"']/g, " ").trim().slice(0, 60);
 }
 
+/** SKU prefix filter: same characters a SKU may contain. */
+export const cleanSkuPrefix = (s: string | undefined) => (s ?? "").toUpperCase().replace(/[^A-Z0-9/-]/g, "").slice(0, 20);
+
 // ---------------------------------------------------------------------------------------
 // Product list
+
+export type ProductStatus = "draft" | "published" | "archived";
+export const STATUS_LABEL: Record<ProductStatus, string> = { draft: "Draft", published: "Published", archived: "Archived" };
 
 export const PRODUCT_FLAGS = {
   needs_review: "Needs review",
@@ -30,6 +36,7 @@ export type AdminProductRow = {
   id: string;
   slug: string;
   name: string;
+  status: ProductStatus;
   needs_review: boolean;
   is_featured: boolean;
   is_new: boolean;
@@ -46,16 +53,26 @@ export type AdminProductRow = {
 
 export const ADMIN_PAGE_SIZE = 50;
 
-export async function listAdminProducts(opts: { q?: string; categoryId?: string; flag?: ProductFlag; page: number }) {
+/** status "active" = draft + published (the default view; archived is its own tab). */
+export async function listAdminProducts(opts: {
+  q?: string;
+  categoryId?: string;
+  flag?: ProductFlag;
+  status?: ProductStatus | "active" | "all";
+  page: number;
+}) {
   let query = adminDb()
     .from("admin_products")
     .select(
-      "id, slug, name, needs_review, is_featured, is_new, brand, category, group_name, variant_count, orderable_count, unpriced_count, image_count, image, skus",
+      "id, slug, name, status, needs_review, is_featured, is_new, brand, category, group_name, variant_count, orderable_count, unpriced_count, image_count, image, skus",
       { count: "exact" },
     );
   const q = cleanSearch(opts.q);
   if (q) query = query.or(`name.ilike.*${q}*,skus.ilike.*${q}*`);
   if (opts.categoryId) query = query.eq("category_id", opts.categoryId);
+  const status = opts.status ?? "active";
+  if (status === "active") query = query.in("status", ["draft", "published"]);
+  else if (status !== "all") query = query.eq("status", status);
   switch (opts.flag) {
     case "needs_review":
       query = query.eq("needs_review", true);
@@ -81,6 +98,18 @@ export async function listAdminProducts(opts: { q?: string; categoryId?: string;
   return { rows: check(res) as AdminProductRow[], total: res.count ?? 0 };
 }
 
+export async function productStatusCounts(): Promise<Record<ProductStatus, number>> {
+  const db = adminDb();
+  const entries = await Promise.all(
+    (["draft", "published", "archived"] as const).map(async (s) => {
+      const r = await db.from("products").select("id", { count: "exact", head: true }).eq("status", s);
+      if (r.error) throw new Error(r.error.message);
+      return [s, r.count ?? 0] as const;
+    }),
+  );
+  return Object.fromEntries(entries) as Record<ProductStatus, number>;
+}
+
 export async function searchAdminProducts(q: string, excludeId?: string) {
   const term = cleanSearch(q);
   if (term.length < 2) return [];
@@ -88,6 +117,7 @@ export async function searchAdminProducts(q: string, excludeId?: string) {
     .from("admin_products")
     .select("id, slug, name, brand, image, skus")
     .or(`name.ilike.*${term}*,skus.ilike.*${term}*`)
+    .neq("status", "archived")
     .order("name")
     .limit(10);
   if (excludeId) query = query.neq("id", excludeId);
@@ -99,17 +129,21 @@ export async function searchAdminProducts(q: string, excludeId?: string) {
 
 export type AdminVariant = {
   id: string;
-  sku: string;
+  sku: string | null; // drafts (e.g. duplicated products) may not have SKUs yet
   option_values: Record<string, string>;
   price: number | null; // GYD; null = Price on request
   is_orderable: boolean;
   sort: number;
 };
 
+export type AdminOption = { name: string; values: string[] };
+
 export type AdminProduct = {
   id: string;
   slug: string;
   name: string;
+  status: ProductStatus;
+  published_at: string | null;
   description: string | null;
   features: string[];
   specs: Record<string, string>;
@@ -120,29 +154,38 @@ export type AdminProduct = {
   needs_review: boolean;
   catalog_page: number | null;
   updated_at: string;
+  options: AdminOption[];
   variants: AdminVariant[];
   images: { id: string; storage_path: string; sort: number; variant_id: string | null }[];
   related: { id: string; slug: string; name: string; image: string | null }[];
+  publishProblems: string[];
+  hasHistory: boolean; // ordered or on a PO: delete archives instead
+  orderedVariantIds: string[]; // variants that can only be discontinued, not deleted
 };
 
 export async function getAdminProduct(id: string): Promise<AdminProduct | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const db = adminDb();
-  const [productRes, relatedRes] = await Promise.all([
+  const [productRes, relatedRes, problemsRes, orderedRes, poRes] = await Promise.all([
     db
       .from("products")
       .select(
-        "id, slug, name, description, features, specs, brand_id, category_id, is_featured, is_new, needs_review, catalog_page, updated_at, " +
-          "variants(id, sku, option_values, price, is_orderable, sort), " +
+        "id, slug, name, status, published_at, description, features, specs, brand_id, category_id, is_featured, is_new, needs_review, catalog_page, updated_at, " +
+          "product_options(name, sort, values), variants(id, sku, option_values, price, is_orderable, sort), " +
           "product_images(id, storage_path, sort, variant_id)",
       )
       .eq("id", id)
+      .order("sort", { referencedTable: "product_options" })
       .order("sort", { referencedTable: "variants" })
       .order("sort", { referencedTable: "product_images" })
       .maybeSingle(),
     db.from("related_products").select("related_id").eq("product_id", id),
+    db.rpc("publish_problems", { p_product: id }),
+    db.from("order_lines").select("variant_id, variants!inner(product_id)").eq("variants.product_id", id).limit(1000),
+    db.from("po_lines").select("variant_id, variants!inner(product_id)").eq("variants.product_id", id).limit(1000),
   ]);
-  const p = check(productRes) as unknown as (Omit<AdminProduct, "variants" | "images" | "related"> & {
+  const p = check(productRes) as unknown as (Omit<AdminProduct, "options" | "variants" | "images" | "related" | "publishProblems" | "hasHistory" | "orderedVariantIds"> & {
+    product_options: { name: string; sort: number; values: string[] }[];
     variants: AdminVariant[];
     product_images: AdminProduct["images"];
   }) | null;
@@ -150,33 +193,66 @@ export async function getAdminProduct(id: string): Promise<AdminProduct | null> 
 
   const relatedIds = (check(relatedRes) as { related_id: string }[]).map((r) => r.related_id);
   const related = relatedIds.length
-    ? (check(
-        await db.from("admin_products").select("id, slug, name, image").in("id", relatedIds).order("name"),
-      ) as AdminProduct["related"])
+    ? (check(await db.from("admin_products").select("id, slug, name, image").in("id", relatedIds).order("name")) as AdminProduct["related"])
     : [];
+  const ordered = new Set(
+    [...(check(orderedRes) as { variant_id: string }[]), ...(check(poRes) as { variant_id: string }[])].map((r) => r.variant_id),
+  );
+  const { count: productLines } = await db.from("order_lines").select("id", { count: "exact", head: true }).eq("product_id", id);
 
+  const { product_options, product_images, ...rest } = p;
   return {
-    ...p,
+    ...rest,
     features: p.features ?? [],
     specs: p.specs ?? {},
+    options: product_options.map((o) => ({ name: o.name, values: o.values })),
     variants: p.variants,
-    images: p.product_images,
+    images: product_images,
     related,
+    publishProblems: (check(problemsRes) as string[] | null) ?? [],
+    hasHistory: ordered.size > 0 || (productLines ?? 0) > 0,
+    orderedVariantIds: [...ordered],
   };
 }
 
-export async function getTaxonomy() {
+export type Taxonomy = {
+  brands: { id: string; name: string; productCount: number }[];
+  groups: { id: string; name: string; slug: string; sort: number }[];
+  categories: { id: string; name: string; slug: string; sort: number; group_id: string; group: string; productCount: number }[];
+};
+
+export async function getTaxonomy(): Promise<Taxonomy> {
   const db = adminDb();
-  const [brands, categories] = await Promise.all([
-    db.from("brands").select("id, name").order("name"),
-    db.from("categories").select("id, name, sort, category_groups(name, sort)").order("sort"),
+  const [brands, groups, categories] = await Promise.all([
+    db.from("brands").select("id, name, products(count)").order("name"),
+    db.from("category_groups").select("id, name, slug, sort").order("sort"),
+    db.from("categories").select("id, name, slug, sort, group_id, category_groups(name), products(count)").order("sort"),
   ]);
   return {
-    brands: check(brands) as { id: string; name: string }[],
-    categories: (check(categories) as unknown as { id: string; name: string; category_groups: { name: string } }[]).map((c) => ({
+    brands: (check(brands) as unknown as { id: string; name: string; products: { count: number }[] }[]).map((b) => ({
+      id: b.id,
+      name: b.name,
+      productCount: b.products[0]?.count ?? 0,
+    })),
+    groups: check(groups) as Taxonomy["groups"],
+    categories: (
+      check(categories) as unknown as {
+        id: string;
+        name: string;
+        slug: string;
+        sort: number;
+        group_id: string;
+        category_groups: { name: string };
+        products: { count: number }[];
+      }[]
+    ).map((c) => ({
       id: c.id,
       name: c.name,
+      slug: c.slug,
+      sort: c.sort,
+      group_id: c.group_id,
       group: c.category_groups.name,
+      productCount: c.products[0]?.count ?? 0,
     })),
   };
 }
@@ -197,7 +273,7 @@ const PRICING_LIMIT = 500;
 
 /** Variants whose SKU starts with a prefix, for bulk price entry (at most 500). */
 export async function variantsByPrefix(prefix: string): Promise<{ rows: PricingRow[]; truncated: boolean }> {
-  const p = prefix.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
+  const p = cleanSkuPrefix(prefix);
   if (!p) return { rows: [], truncated: false };
   const db = adminDb();
   const res = await db
@@ -213,7 +289,7 @@ export async function variantsByPrefix(prefix: string): Promise<{ rows: PricingR
   };
 }
 
-/** Orderable variants still showing "Price on request", with SKU-prefix counts. */
+/** Orderable variants of live products still showing "Price on request". */
 export async function missingPrices(page: number, prefix?: string) {
   const db = adminDb();
   const size = 100;
@@ -222,7 +298,7 @@ export async function missingPrices(page: number, prefix?: string) {
     .select("id, sku, option_values, products(id, name)", { count: "exact" })
     .eq("is_orderable", true)
     .is("price", null);
-  const p = (prefix ?? "").toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
+  const p = cleanSkuPrefix(prefix);
   if (p) query = query.ilike("sku", `${p}%`);
   const res = await query.order("sku").range((page - 1) * size, page * size - 1);
   return {
@@ -239,15 +315,16 @@ export async function getOverviewStats() {
     if (r.error) throw new Error(r.error.message);
     return r.count ?? 0;
   };
-  const [products, needsReview, noImage, orderable, unpriced, pendingOrders] = await Promise.all([
-    count(db.from("products").select("id", { count: "exact", head: true })),
-    count(db.from("products").select("id", { count: "exact", head: true }).eq("needs_review", true)),
-    count(db.from("admin_products").select("id", { count: "exact", head: true }).eq("image_count", 0)),
+  const [products, drafts, needsReview, noImage, orderable, unpriced, pendingOrders] = await Promise.all([
+    count(db.from("products").select("id", { count: "exact", head: true }).eq("status", "published")),
+    count(db.from("products").select("id", { count: "exact", head: true }).eq("status", "draft")),
+    count(db.from("products").select("id", { count: "exact", head: true }).eq("needs_review", true).neq("status", "archived")),
+    count(db.from("admin_products").select("id", { count: "exact", head: true }).eq("image_count", 0).neq("status", "archived")),
     count(db.from("variant_prices").select("id", { count: "exact", head: true }).eq("is_orderable", true)),
     count(db.from("variant_prices").select("id", { count: "exact", head: true }).eq("is_orderable", true).is("price", null)),
     count(db.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending")),
   ]);
-  return { products, needsReview, noImage, orderable, unpriced, pendingOrders };
+  return { products, drafts, needsReview, noImage, orderable, unpriced, pendingOrders };
 }
 
 export async function recentAudit(limit = 15) {

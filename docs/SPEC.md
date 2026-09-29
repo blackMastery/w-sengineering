@@ -95,6 +95,39 @@ One admin at launch; `profiles.role` leaves room for staff.
 - **Purchase orders:** build from Confirmed lines grouped by SKU, export (CSV), mark sent and received.
 - **Audit log:** every status change, line edit and price edit: who, when, before, after. Customers see a status timeline only.
 
+## Catalog management (admin CRUD)
+
+The admin is the source of truth for the catalog after launch; the PDF pipeline is for the initial load only and the seed is never re-run on production.
+
+**Products**
+- **States:** Draft → Published → Archived (one status). New products start as Draft; the 955 seeded products start Published. Unpublish returns a product to Draft; Archive retires it (hidden from the default admin list, restorable).
+- **Create:** minimal form (name, brand, category) creates a Draft and opens the full editor with a publish checklist.
+- **Publish requires:** at least one orderable variant, a photo, a category and brand, and a real name (not "Untitled…"). Unpriced variants are allowed ("Price on request").
+- **Delete:** hard delete only if the product was never ordered or on a PO (also deletes photos the admin uploaded; catalog photos are kept). Otherwise Delete archives.
+- **Duplicate:** copy details, options, variants (without SKUs) and photos into a new Draft.
+- **Slugs:** follow the name on rename; old slugs are kept in a redirect table. Same for category and group renames.
+- **Customers opening an archived/draft product** see "No longer available" with the name, photo and products from the same subcategory; no add to cart.
+- **Archiving/unpublishing** a product in carts: carts drop it (checkout re-validates); open orders keep their lines and the admin is told which open orders contain it.
+
+**Options and variants**
+- **Variant state:** Active or Discontinued (the existing orderable switch). Delete hard-deletes a never-ordered variant, otherwise discontinues it.
+- **Add variants:** one at a time (SKU + a value per option), or generate every combination of ticked values and trim before saving.
+- **Duplicate combinations:** warn but allow (89 existing products rely on the "Part #" chooser).
+- **Rename an option value:** renames it everywhere on that product; past orders keep their snapshot.
+- **Add an option to a product with variants:** existing variants start blank (shown as "Standard"); the admin fills them.
+- **Remove an option value in use:** offer to discontinue/delete the variants using it together with the value.
+- **SKUs:** trimmed, uppercased, unique (case-insensitive); A–Z, 0–9, dash and slash only. The 90 W. Rose SKUs with spaces are normalised (e.g. `RO116-9 1/2K` → `RO116-9-1/2K`). SKU edits on ordered variants are allowed with a warning; order snapshots keep the old SKU.
+
+**Taxonomy**
+- **Brands** and **subcategories:** add, rename, reorder, delete. Delete is blocked while products are attached; the dialog offers to move them first.
+- **Groups:** rename and reorder only (the store is designed for 6).
+
+**Editor behaviour**
+- Save per section, warning on leaving with unsaved changes; each save is one audited change.
+- Conflict detection: a save fails if the product changed since the page was opened, and shows what changed.
+- Bulk actions on the product list: publish/unpublish, archive/restore, move category/set brand, set flags (best seller, new, needs review).
+- Full editing works on a phone (375px), including options, the variant generator and reordering (no drag-only interactions).
+
 ## Design
 
 The W&S Engineering wireframes (`docs/design/wireframes.html`, open in a browser) set the brand. Keep their look; adapt to this spec, mobile-first.

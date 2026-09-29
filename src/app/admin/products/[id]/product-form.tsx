@@ -1,7 +1,8 @@
 "use client";
 
-import { saveProductAction } from "../../actions";
-import { ActionMessage, useAdminAction } from "../../use-admin-action";
+import { useState } from "react";
+import { saveProductAction, type ProductInput } from "../../actions";
+import { ActionMessage, useAdminAction, useUnsavedGuard } from "../../use-admin-action";
 import type { AdminProduct } from "@/lib/admin/data";
 
 const input = "w-full rounded-lg border border-navy/30 bg-white/70 px-3 outline-none focus:border-navy";
@@ -16,7 +17,21 @@ export function ProductForm({
   categories: { id: string; name: string; group: string }[];
 }) {
   const { pending, message, run } = useAdminAction();
+  const [dirty, setDirty] = useState(false);
+  useUnsavedGuard(dirty, "product details");
   const groups = [...new Set(categories.map((c) => c.group))];
+  // What the editor loaded: the database refuses the save if these changed meanwhile.
+  const original: ProductInput = {
+    name: product.name,
+    description: product.description ?? "",
+    features: product.features,
+    specs: Object.entries(product.specs),
+    brand_id: product.brand_id,
+    category_id: product.category_id,
+    is_featured: product.is_featured,
+    is_new: product.is_new,
+    needs_review: product.needs_review,
+  };
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,26 +41,25 @@ export function ProductForm({
         .split("\n")
         .map((l) => l.trim())
         .filter(Boolean);
-    run(() =>
-      saveProductAction(product.id, {
-        name: String(f.get("name")),
-        description: String(f.get("description") ?? ""),
-        features: lines("features"),
-        specs: lines("specs").map((l) => {
-          const i = l.indexOf(":");
-          return i < 0 ? [l, ""] : [l.slice(0, i).trim(), l.slice(i + 1).trim()];
-        }),
-        brand_id: String(f.get("brand_id")),
-        category_id: String(f.get("category_id")),
-        is_featured: f.get("is_featured") === "on",
-        is_new: f.get("is_new") === "on",
-        needs_review: f.get("needs_review") === "on",
+    const input: ProductInput = {
+      name: String(f.get("name")),
+      description: String(f.get("description") ?? ""),
+      features: lines("features"),
+      specs: lines("specs").map((l) => {
+        const i = l.indexOf(":");
+        return i < 0 ? [l, ""] : [l.slice(0, i).trim(), l.slice(i + 1).trim()];
       }),
-    );
+      brand_id: String(f.get("brand_id")),
+      category_id: String(f.get("category_id")),
+      is_featured: f.get("is_featured") === "on",
+      is_new: f.get("is_new") === "on",
+      needs_review: f.get("needs_review") === "on",
+    };
+    run(() => saveProductAction(product.id, input, original), () => setDirty(false));
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+    <form onSubmit={onSubmit} onInput={() => setDirty(true)} onChange={() => setDirty(true)} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1">
         <span className="font-medium">Name</span>
         <input name="name" defaultValue={product.name} required maxLength={200} className={`${input} h-10 text-[15px]`} />
@@ -117,7 +131,7 @@ export function ProductForm({
       </fieldset>
       <div className="flex items-center gap-3">
         <button disabled={pending} className="h-10 rounded-lg bg-navy px-5 font-semibold text-cream-2 disabled:opacity-60">
-          {pending ? "Saving…" : "Save details"}
+          {pending ? "Saving…" : dirty ? "Save details" : "Saved"}
         </button>
         <ActionMessage message={message} />
       </div>

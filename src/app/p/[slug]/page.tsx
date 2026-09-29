@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ProductGrid } from "@/components/product-card";
 import { ProductView } from "@/components/product/product-view";
 import { SectionHeading } from "@/components/section-heading";
-import { getProduct, getRelated } from "@/lib/catalog";
+import { UnavailableProduct } from "@/components/product/unavailable-product";
+import { getCategoryNeighbours, getProduct, getRelated, resolveMissingProduct } from "@/lib/catalog";
 import { imageUrl } from "@/lib/format";
 
 export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Promise<Metadata> {
-  const product = await getProduct((await params).slug);
-  if (!product) return { title: "Product not found" };
+  const slug = (await params).slug;
+  const product = await getProduct(slug);
+  if (!product) {
+    const missing = await resolveMissingProduct(slug);
+    return missing && "unavailable" in missing
+      ? { title: `${missing.unavailable.name} (no longer available)`, robots: { index: false } }
+      : { title: "Product not found" };
+  }
   return {
     title: product.name,
     description: product.description ?? `${product.name} by ${product.brand.name}. ${product.features.slice(0, 2).join(". ")}`,
@@ -20,7 +27,14 @@ export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Prom
 export default async function ProductPage({ params, searchParams }: PageProps<"/p/[slug]">) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const product = await getProduct(slug);
-  if (!product) notFound();
+  if (!product) {
+    // Renamed → its new URL; archived/unpublished after being live → "no longer available".
+    const missing = await resolveMissingProduct(slug);
+    if (!missing) notFound();
+    if ("redirectTo" in missing) permanentRedirect(`/p/${missing.redirectTo}${typeof query.sku === "string" ? `?sku=${encodeURIComponent(query.sku)}` : ""}`);
+    const info = missing.unavailable;
+    return <UnavailableProduct product={info} alternatives={await getCategoryNeighbours(info.category.id, info.id)} />;
+  }
   const related = await getRelated(product);
   const sku = typeof query.sku === "string" ? query.sku : undefined;
 

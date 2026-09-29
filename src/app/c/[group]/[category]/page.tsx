@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { CategoryListing } from "@/components/listing/category-listing";
-import { getGroups } from "@/lib/catalog";
+import { getGroups, resolveCategoryPath } from "@/lib/catalog";
 
 export async function generateMetadata({ params }: PageProps<"/c/[group]/[category]">): Promise<Metadata> {
   const { group, category } = await params;
@@ -12,6 +12,11 @@ export async function generateMetadata({ params }: PageProps<"/c/[group]/[catego
 export default async function CategoryPage({ params, searchParams }: PageProps<"/c/[group]/[category]">) {
   const { group: groupSlug, category: categorySlug } = await params;
   const group = (await getGroups()).find((g) => g.slug === groupSlug);
-  if (!group || !group.categories.some((c) => c.slug === categorySlug)) notFound();
+  if (!group || !group.categories.some((c) => c.slug === categorySlug)) {
+    // renamed, or moved to another group
+    const path = await resolveCategoryPath(groupSlug, categorySlug);
+    if (path && path !== `/c/${groupSlug}/${categorySlug}`) permanentRedirect(path);
+    notFound();
+  }
   return <CategoryListing group={group} categorySlug={categorySlug} searchParams={await searchParams} />;
 }

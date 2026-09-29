@@ -27,6 +27,12 @@ def slug(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
+def norm_sku(s):
+    """Same as public.normalize_sku: trim, uppercase, runs of spaces → '-'."""
+    import re
+    return re.sub(r"\s+", "-", s.strip().upper())
+
+
 def q(v):
     if v is None:
         return "null"
@@ -75,6 +81,7 @@ for p in P:
         "description": p["description"] or None, "features": p["features"], "specs": specs,
         "catalog_page": p["catalog_page"], "is_featured": False, "is_new": False,
         "needs_review": p["name"].startswith("Untitled") or len(p["name"].split()) <= 2,
+        "status": "published",
     })
     for i, k in enumerate(opt_keys):
         vals = []
@@ -85,7 +92,8 @@ for p in P:
         options.append({"id": uid("option", pid, k), "product_id": pid, "name": k, "sort": i, "values": vals})
     for i, v in enumerate(vs):
         ov = {k: v["options"][k] for k in opt_keys if k in v["options"]}
-        variants.append({"id": uid("variant", v["sku"]), "product_id": pid, "sku": v["sku"], "option_values": ov,
+        # id from the catalog SKU (stable); stored SKU normalised like public.normalize_sku (0007)
+        variants.append({"id": uid("variant", v["sku"]), "product_id": pid, "sku": norm_sku(v["sku"]), "option_values": ov,
                          "price": None, "is_orderable": True, "sort": i})
         review.append([v["sku"], p["name"], p["catalog_page"], p["category"], p["brand"],
                        "; ".join(f"{k}: {x}" for k, x in ov.items()),
@@ -129,7 +137,7 @@ sql = ["-- Seed generated from Kraft Tool Co. Series 0126 catalog (PDF).",
                 "catalog_pages": f"{a}-{b}"} for i, (c, g, a, b) in enumerate(CATS)]),
        insert("brands", ["id", "name", "slug"], [{"id": uid("brand", b), "name": b, "slug": slug(b)} for b in BRANDS]),
        insert("products", ["id", "slug", "name", "category_id", "brand_id", "supplier_id", "description", "features",
-                           "specs", "catalog_page", "is_featured", "is_new", "needs_review"], products),
+                           "specs", "catalog_page", "is_featured", "is_new", "needs_review", "status"], products),
        opt_rows(),
        insert("variants", ["id", "product_id", "sku", "option_values", "price", "is_orderable", "sort"], variants),
        insert("product_images", ["id", "product_id", "variant_id", "storage_path", "sort"], images) if images else "",
