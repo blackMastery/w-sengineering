@@ -42,7 +42,8 @@ Prices are entered directly in Guyanese dollars (GYD, whole units), one price pe
 
 - **Entry:** admin sets each variant's price on the product page, or in bulk by SKU prefix (paste from a spreadsheet).
 - **No price yet → null:** show "Price on request". It can still be ordered and is priced at invoice.
-- **Price lock:** each order line snapshots its unit price at order time. Invoices honor the snapshot.
+- **Price lock:** each order line snapshots its unit price at order time. Invoices honor the snapshot. Changing a catalog price never changes existing orders.
+- **Pricing "Price on request" lines:** on the admin order page, the admin prices unpriced lines (pre-filled from the current catalog price) any time from Pending to Arrived, except while a change proposal is open. Only unpriced lines can be set; the estimate updates and the customer's timeline shows a note. Anything still unpriced is priced at invoice.
 - **Tax:** none.
 
 ## Customer experience

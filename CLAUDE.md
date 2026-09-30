@@ -126,6 +126,7 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
   `admin_set_po_status` (draft→sent→received, or delete draft). Orders advance automatically once *every* line is on a sent/received PO, so approved replacements need their own PO.
 - Cancelling takes an order's lines off draft POs; lines on sent POs stay (they were ordered).
 - UI: `src/app/admin/orders/`, `src/app/admin/purchase-orders/` (CSV at `/admin/purchase-orders/[id]/csv`, formula-safe), shared diff `components/account/proposal-view.tsx`. Admin wording for statuses: `ADMIN_STATUS_LABEL`.
+- Pricing "Price on request" lines: `admin_price_order_lines` (0009; service_role, audited) sets `unit_price` on **unpriced lines only** (snapshots never change), recomputes `estimate_total`, adds a timeline note. UI: `src/app/admin/orders/[number]/price-lines.tsx` (pre-filled from the variant's current catalog price). Allowed pending → received, not while awaiting approval.
 - PO numbers `PO-1001…` (internal). Reminder email after 3 days (`order_changes.reminded_at`) is step 7.
 - Cart sync keeps a `ws-cart-dirty` flag so a signed-in change made just before a reload/tab close is pushed, not overwritten.
 

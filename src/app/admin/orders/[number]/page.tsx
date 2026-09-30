@@ -8,6 +8,7 @@ import { getAdminOrder } from "@/lib/admin/orders";
 import { describeOptions, formatPrice } from "@/lib/format";
 import { ADMIN_STATUS_LABEL } from "@/lib/order-status";
 import { OrderActions } from "./order-actions";
+import { PriceLines } from "./price-lines";
 import { ProposeChanges } from "./propose-changes";
 
 export async function generateMetadata({ params }: PageProps<"/admin/orders/[number]">) {
@@ -26,6 +27,9 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
   const past = order.proposals.filter((p) => p.status !== "proposed");
   const unpriced = order.lines.filter((l) => l.unit_price == null).length;
   const canPropose = order.status === "confirmed" || order.status === "ordered_from_supplier";
+  // same statuses admin_price_order_lines accepts
+  const canPrice = ["pending", "confirmed", "ordered_from_supplier", "received"].includes(order.status);
+  const unpricedLines = order.lines.filter((l) => l.unit_price == null);
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
@@ -125,8 +129,12 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
                 Estimate <b className="font-serif text-lg font-medium">{formatPrice(Number(order.estimate_total))}</b>
               </span>
             </div>
-            {unpriced > 0 && <p className="text-right text-[12.5px] text-gold">{unpriced} “Price on request” {unpriced === 1 ? "line" : "lines"} to price at invoice.</p>}
+            {unpriced > 0 && <p className="text-right text-[12.5px] text-gold">{unpriced} “Price on request” {unpriced === 1 ? "line" : "lines"}{canPrice ? " — price them below, or at invoice." : order.status === "awaiting_approval" ? " — price them once the customer answers." : "."}</p>}
           </section>
+
+          {canPrice && unpricedLines.length > 0 && (
+            <PriceLines key={unpricedLines.map((l) => l.id).join()} orderId={order.id} number={order.number} lines={unpricedLines} />
+          )}
 
           {canPropose && <ProposeChanges key={order.lines.map((l) => `${l.id}:${l.qty}`).join()} orderId={order.id} number={order.number} lines={order.lines} />}
 

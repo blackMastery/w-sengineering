@@ -117,6 +117,8 @@ export type AdminOrder = {
     qty: number;
     unit_price: number | null;
     variant_id: string | null;
+    /** The variant's price in the catalog now (pre-fills pricing of "Price on request" lines). */
+    catalog_price: number | null;
     po: { id: string; number: string; status: string } | null;
     product: { id: string; slug: string } | null;
   }[];
@@ -132,7 +134,7 @@ export async function getAdminOrder(number: string): Promise<AdminOrder | null> 
       .from("orders")
       .select(
         "id, number, status, user_id, fulfillment, contact_name, contact_phone, contact_email, address, notes, estimate_total, created_at, " +
-          "order_lines(id, sku, name, option_values, qty, unit_price, variant_id, sort, purchase_orders(id, number, status), products(id, slug)), " +
+          "order_lines(id, sku, name, option_values, qty, unit_price, variant_id, sort, purchase_orders(id, number, status), products(id, slug), variants(price)), " +
           "order_events(id, status, note, created_at, actor_id), " +
           "order_changes(id, proposed, note, status, created_at, decided_at, reminded_at)",
       )
@@ -142,9 +144,10 @@ export async function getAdminOrder(number: string): Promise<AdminOrder | null> 
       .order("created_at", { referencedTable: "order_changes", ascending: false })
       .maybeSingle(),
   ) as unknown as (Omit<AdminOrder, "lines" | "events" | "proposals" | "customerOrderCount"> & {
-    order_lines: (Omit<AdminOrder["lines"][number], "po" | "product"> & {
+    order_lines: (Omit<AdminOrder["lines"][number], "po" | "product" | "catalog_price"> & {
       purchase_orders: AdminOrder["lines"][number]["po"];
       products: AdminOrder["lines"][number]["product"];
+      variants: { price: number | null } | null;
     })[];
     order_events: AdminOrder["events"];
     order_changes: Proposal[];
@@ -155,7 +158,12 @@ export async function getAdminOrder(number: string): Promise<AdminOrder | null> 
   const { order_lines, order_events, order_changes, ...order } = row;
   return {
     ...order,
-    lines: order_lines.map(({ purchase_orders, products, ...l }) => ({ ...l, po: purchase_orders, product: products })),
+    lines: order_lines.map(({ purchase_orders, products, variants, ...l }) => ({
+      ...l,
+      po: purchase_orders,
+      product: products,
+      catalog_price: variants?.price ?? null,
+    })),
     events: order_events,
     proposals: order_changes,
     customerOrderCount: count ?? 0,

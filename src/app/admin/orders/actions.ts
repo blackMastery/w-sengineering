@@ -13,6 +13,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 
 function mapError(error: { code?: string; hint?: string; message: string }): ActionResult {
   // 22023 = validation, P0001 with a hint = a transition that isn't allowed from the current state
+  if (error.hint === "conflict") return { ok: false, error: error.message, conflict: true };
   if (error.code === "22023" || error.hint) return { ok: false, error: error.message };
   console.error("workflow action failed", error);
   return { ok: false, error: "That didn’t work. Reload the page and try again." };
@@ -100,4 +101,24 @@ export async function setPoStatusAction(poId: string, to: "sent" | "received" | 
   if (to === "deleted") return { ok: true, message: "Draft deleted. Its orders are back in the queue." };
   const what = to === "sent" ? "ordered from supplier" : "arrived";
   return { ok: true, message: `Marked ${to}. ${moved} ${moved === 1 ? "order" : "orders"} moved to “${what}”.` };
+}
+
+// ---------------------------------------------------------------------------------------
+// Price "Price on request" lines (only unpriced lines; prices the customer ordered at stay)
+
+export async function priceOrderLinesAction(orderId: string, number: string, prices: { line_id: string; unit_price: number }[]): Promise<ActionResult> {
+  const actor = await adminActor();
+  if (!UUID.test(orderId)) return { ok: false, error: "Unknown order." };
+  const clean = (Array.isArray(prices) ? prices : []).filter(
+    (p) => UUID.test(p?.line_id) && Number.isSafeInteger(p?.unit_price) && p.unit_price >= 0 && p.unit_price < 1e9,
+  );
+  if (!clean.length || clean.length !== prices.length) return { ok: false, error: "Prices must be whole GYD amounts." };
+  const { data, error } = await adminDb().rpc("admin_price_order_lines", { p_actor: actor, p_order: orderId, p_prices: clean });
+  if (error) return mapError(error);
+  refreshOrders(number);
+  const r = data as { priced: number; unpriced_left: number };
+  return {
+    ok: true,
+    message: `Priced ${r.priced} ${r.priced === 1 ? "line" : "lines"}.${r.unpriced_left ? ` ${r.unpriced_left} still “Price on request”.` : ""} The customer sees the new estimate.`,
+  };
 }
