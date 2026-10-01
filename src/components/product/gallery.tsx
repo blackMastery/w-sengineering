@@ -16,9 +16,10 @@ export function Gallery({ images, name, focusPath }: { images: Img[]; name: stri
   };
 
   useEffect(() => {
-    const i = focusPath ? images.findIndex((img) => img.path === focusPath) : -1;
+    // No variant photo: back to the main one, so a previous variant's photo doesn't linger.
+    const i = focusPath ? Math.max(0, images.findIndex((img) => img.path === focusPath)) : 0;
     const el = track.current;
-    if (i >= 0 && el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
   }, [focusPath, images]);
 
   if (images.length === 0) {

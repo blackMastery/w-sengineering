@@ -8,6 +8,24 @@ import { useCart } from "../cart/cart-provider";
 import { QtyStepper } from "../qty-stepper";
 import { Gallery } from "./gallery";
 
+/**
+ * The photo to show for a variant: its own linked photo, else the linked photo whose variant shares the most
+ * option values with it (so a photo linked to one "Round Ends" SKU also shows for the other Round Ends sizes),
+ * else null (the gallery goes back to the main photo). Ties go to the earlier photo.
+ */
+function photoFor(product: ProductDetail, variant: ProductDetail["variants"][number]): string | null {
+  let best: { path: string; score: number } | null = null;
+  for (const img of product.images) {
+    if (!img.variantId) continue;
+    if (img.variantId === variant.id) return img.path;
+    const linked = product.variants.find((v) => v.id === img.variantId);
+    if (!linked) continue;
+    const score = Object.entries(variant.optionValues).filter(([k, v]) => linked.optionValues[k] === v).length;
+    if (score > 0 && (!best || score > best.score)) best = { path: img.path, score };
+  }
+  return best?.path ?? null;
+}
+
 function optionClass(selected: boolean, enabled: boolean) {
   if (selected) return "border-navy bg-navy text-cream-2";
   if (!enabled) return "border-navy/15 text-navy/35 line-through";
@@ -34,7 +52,7 @@ export function ProductView({ product, initialSku }: { product: ProductDetail; i
     window.history.replaceState(null, "", url);
   };
 
-  const variantImage = product.images.find((i) => i.variantId === variant.id)?.path ?? null;
+  const variantImage = photoFor(product, variant);
   const optionRows = Object.entries(variant.optionValues);
   const specRows = Object.entries(product.specs).filter(([k]) => !(k in variant.optionValues));
 
