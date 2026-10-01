@@ -72,9 +72,7 @@ select
   o.last_order_at,
   -- for search: profile + every name/phone used on orders
   concat_ws(' ', lower(p.full_name), lower(u.email::text), o.names) as search_text,
-  concat_ws(' ', public.phone_digits(p.phone), o.phones) as phone_search,
-  -- Supabase Auth's ban (set by the block action); compared with blocked_at to catch a failed ban
-  u.banned_until
+  concat_ws(' ', public.phone_digits(p.phone), o.phones) as phone_search
 from auth.users u
 left join public.profiles p on p.id = u.id
 left join lateral (
