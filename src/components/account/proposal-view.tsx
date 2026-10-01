@@ -55,7 +55,7 @@ export function ProposalView({ proposed }: { proposed: ProposalData }) {
         <span>New estimated total</span>
         <span className="font-serif text-lg font-medium">{formatPrice(estimate)}</span>
       </div>
-      {unpriced > 0 && <p className="text-[12.5px] text-gold">Plus {unpriced} “Price on request” {unpriced === 1 ? "item" : "items"}, priced on the invoice.</p>}
+      {unpriced > 0 && <p className="text-[12.5px] text-gold-ink">Plus {unpriced} “Price on request” {unpriced === 1 ? "item" : "items"}, priced on the invoice.</p>}
     </div>
   );
 }

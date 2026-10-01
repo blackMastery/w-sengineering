@@ -96,7 +96,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ac
                     </div>
                     {options && <div className="text-[12.5px] opacity-70">{options}</div>}
                   </div>
-                  <span className={`flex-none text-right ${l.unitPrice == null ? "max-w-24 text-[12.5px] leading-tight text-gold" : "font-serif text-base font-medium"}`}>
+                  <span className={`flex-none text-right ${l.unitPrice == null ? "max-w-24 text-[12.5px] leading-tight text-gold-ink" : "font-serif text-base font-medium"}`}>
                     {formatPrice(l.unitPrice == null ? null : l.unitPrice * l.qty)}
                   </span>
                 </li>

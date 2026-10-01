@@ -36,7 +36,7 @@ export function CartLineRow({ line, compact = false, onNavigate }: { line: CartL
             <div className="mt-0.5 font-mono text-[11.5px] opacity-60">{info.sku}</div>
             {options && <div className="mt-0.5 text-[12.5px] opacity-70">{options}</div>}
           </Link>
-          <span className={`flex-none text-right ${lineTotal == null ? "max-w-24 text-[12.5px] leading-tight text-gold" : "font-serif text-base font-medium"}`}>
+          <span className={`flex-none text-right ${lineTotal == null ? "max-w-24 text-[12.5px] leading-tight text-gold-ink" : "font-serif text-base font-medium"}`}>
             {formatPrice(lineTotal)}
           </span>
         </div>

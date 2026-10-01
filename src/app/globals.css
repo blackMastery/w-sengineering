@@ -10,6 +10,8 @@
   --color-stone: #efe6d2;
   --color-gold: #b8894a;
   --color-gold-light: #dcbf8f;
+  /* gold for text on cream: plain gold is only ~3:1 there */
+  --color-gold-ink: #8a6330;
   --color-ok: #8fd1a4;
 
   --font-serif: var(--font-eb-garamond), Georgia, serif;
@@ -44,9 +46,19 @@
   body {
     @apply bg-cream font-sans text-navy antialiased;
     font-size: 15px;
+    text-underline-offset: 0.2em;
   }
   a {
     @apply text-navy;
+  }
+  /* Navy ring on cream; navy surfaces switch it to gold via `on-dark`. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring, var(--color-navy));
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-gold-light);
+    color: var(--color-navy-deep);
   }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
@@ -56,6 +68,14 @@
 
 @utility stripes {
   background: repeating-linear-gradient(135deg, var(--color-stone) 0 10px, #e8dcc3 10px 20px);
+}
+
+@utility on-dark {
+  --focus-ring: var(--color-gold-light);
+}
+
+@utility on-light {
+  --focus-ring: var(--color-navy);
 }
 
 @utility no-scrollbar {

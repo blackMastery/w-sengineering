@@ -14,7 +14,7 @@ export function CartButton() {
     >
       <BagIcon className="size-5 md:hidden" />
       <span className="hidden md:inline">Cart</span>
-      <span className={`min-w-5 rounded-full px-1.5 text-center text-xs text-cream-2 tabular-nums ${count ? "bg-gold" : "bg-navy/60"}`}>
+      <span className={`min-w-5 rounded-full px-1.5 text-center text-xs tabular-nums ${count ? "bg-gold text-navy-deep" : "bg-navy/60 text-cream-2"}`}>
         {count}
       </span>
     </button>

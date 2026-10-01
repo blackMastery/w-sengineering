@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowIcon } from "@/components/icons";
 import { CartEstimate } from "@/components/cart/cart-estimate";
 import { CartLineRow } from "@/components/cart/cart-line-row";
 import { useCartLines, useHydrated } from "@/components/cart/cart-provider";
@@ -27,11 +28,11 @@ export function CartView() {
         {lines.map((l) => (
           <CartLineRow key={l.variantId} line={l} />
         ))}
-        <Link href="/c" className="mt-4 inline-block text-sm underline">
-          ← Continue shopping
+        <Link href="/c" className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-sm underline">
+          <ArrowIcon className="size-4 rotate-180" /> Continue shopping
         </Link>
       </div>
-      <aside className="flex flex-col gap-4 rounded-2xl bg-navy p-6 text-[14.5px] text-cream-2 md:sticky md:top-24">
+      <aside className="on-dark flex flex-col gap-4 rounded-2xl bg-navy p-6 text-[14.5px] text-cream-2 md:sticky md:top-24">
         <span className="font-serif text-2xl font-medium">Order summary</span>
         <CartEstimate subtotal={subtotal} priced={priced} onRequest={onRequest} tone="dark" />
         <Link href="/checkout" className="rounded-lg bg-cream-2 py-3.5 text-center text-[15px] font-semibold text-navy!">

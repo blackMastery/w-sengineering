@@ -1,6 +1,7 @@
 "use client";
 
 import { MAX_QTY } from "@/lib/cart-store";
+import { MinusIcon, PlusIcon } from "./icons";
 
 export function QtyStepper({
   value,
@@ -24,24 +25,24 @@ export function QtyStepper({
     <div className={`inline-flex items-center rounded-lg ${tone} ${h}`} role="group" aria-label={label}>
       <button
         type="button"
-        className={`${w} h-full text-lg disabled:opacity-30`}
+        className={`${w} grid h-full place-items-center rounded-lg disabled:opacity-30`}
         onClick={() => onChange(value - 1)}
         disabled={value <= min}
         aria-label="Decrease quantity"
       >
-        −
+        <MinusIcon />
       </button>
       <span className="min-w-7 text-center text-sm font-medium tabular-nums" aria-live="polite">
         {value}
       </span>
       <button
         type="button"
-        className={`${w} h-full text-lg disabled:opacity-30`}
+        className={`${w} grid h-full place-items-center rounded-lg disabled:opacity-30`}
         onClick={() => onChange(value + 1)}
         disabled={value >= MAX_QTY}
         aria-label="Increase quantity"
       >
-        +
+        <PlusIcon />
       </button>
     </div>
   );

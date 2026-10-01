@@ -3,7 +3,7 @@ import type { Group } from "@/lib/types";
 
 export function Footer({ groups }: { groups: Group[] }) {
   return (
-    <footer className="mt-auto bg-navy-deep text-cream-2">
+    <footer className="on-dark mt-auto bg-navy-deep text-cream-2">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 pt-10 pb-6 text-sm md:grid-cols-[1.4fr_1fr_1.4fr] md:px-8 md:pt-12">
         <div className="flex flex-col gap-2">
           <span className="font-script text-[32px] leading-tight">W&amp;S Engineering</span>

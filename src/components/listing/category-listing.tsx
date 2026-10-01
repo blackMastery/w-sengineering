@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getListing, type SortKey } from "@/lib/catalog";
 import type { Group } from "@/lib/types";
+import { ArrowIcon } from "../icons";
 import { ProductGrid } from "../product-card";
 import { SortSelect } from "./sort-select";
 
@@ -130,16 +131,16 @@ export async function CategoryListing({
         {listing.pageCount > 1 && (
           <nav className="mt-10 flex items-center justify-center gap-2 text-sm" aria-label="Pagination">
             {listing.page > 1 && (
-              <Link href={href({ page: String(listing.page - 1) })} className="flex h-11 items-center rounded-lg border border-navy/25 px-4">
-                ← Previous
+              <Link href={href({ page: String(listing.page - 1) })} className="flex h-11 items-center gap-2 rounded-lg border border-navy/25 px-4">
+                <ArrowIcon className="size-4 rotate-180" /> Previous
               </Link>
             )}
             <span className="px-3 tabular-nums opacity-70">
               Page {listing.page} of {listing.pageCount}
             </span>
             {listing.page < listing.pageCount && (
-              <Link href={href({ page: String(listing.page + 1) })} className="flex h-11 items-center rounded-lg border border-navy/25 px-4">
-                Next →
+              <Link href={href({ page: String(listing.page + 1) })} className="flex h-11 items-center gap-2 rounded-lg border border-navy/25 px-4">
+                Next <ArrowIcon className="size-4" />
               </Link>
             )}
           </nav>

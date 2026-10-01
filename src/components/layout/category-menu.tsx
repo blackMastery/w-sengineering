@@ -37,7 +37,7 @@ export function CategoryMenu({ groups }: { groups: Group[] }) {
           <div className="absolute inset-0 animate-fade-in bg-navy-deep/45 md:fixed md:top-16" onClick={close} />
 
           {/* phones: accordion sheet */}
-          <div className="absolute inset-x-0 bottom-0 flex max-h-[88dvh] animate-sheet-up flex-col rounded-t-2xl bg-cream text-navy md:hidden">
+          <div className="on-light absolute inset-x-0 bottom-0 flex max-h-[88dvh] animate-sheet-up flex-col rounded-t-2xl bg-cream text-navy md:hidden">
             <div className="flex items-center justify-between border-b border-navy/15 px-5 py-3">
               <span className="font-serif text-2xl font-medium">Shop by category</span>
               <button type="button" onClick={close} className="-mr-2 grid size-11 place-items-center" aria-label="Close menu">
@@ -81,7 +81,7 @@ export function CategoryMenu({ groups }: { groups: Group[] }) {
           </div>
 
           {/* md+: mega panel */}
-          <div className="relative hidden animate-drop-in border-b border-navy/15 bg-cream text-navy md:block">
+          <div className="on-light relative hidden animate-drop-in border-b border-navy/15 bg-cream text-navy md:block">
             <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-5 px-8 pt-7 pb-8 lg:grid-cols-3">
               {groups.map((g) => (
                 <div key={g.id} className="flex gap-3.5 rounded-xl p-2">

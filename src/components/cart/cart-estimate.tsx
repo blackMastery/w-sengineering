@@ -24,7 +24,7 @@ export function CartEstimate({
         )}
       </div>
       {onRequest > 0 && priced > 0 && (
-        <p className={`text-[13px] ${tone === "dark" ? "text-gold-light" : "text-gold"}`}>
+        <p className={`text-[13px] ${tone === "dark" ? "text-gold-light" : "text-gold-ink"}`}>
           {onRequest === 1 ? "1 item is" : `${onRequest} items are`} “Price on request” and not included. We’ll price{" "}
           {onRequest === 1 ? "it" : "them"} on your invoice.
         </p>

@@ -27,7 +27,7 @@ export function SortSelect({ value }: { value: string }) {
           const qs = next.toString();
           router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
         }}
-        className="h-full appearance-none bg-transparent pr-5 font-medium outline-none"
+        className="h-full appearance-none rounded-sm bg-transparent pr-5 font-medium"
       >
         {OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>

@@ -67,3 +67,27 @@ export function ArrowIcon({ className = "size-4" }: IconProps) {
     </svg>
   );
 }
+
+export function PlusIcon({ className = "size-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} {...base}>
+      <path d="M8 3v10M3 8h10" />
+    </svg>
+  );
+}
+
+export function MinusIcon({ className = "size-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} {...base}>
+      <path d="M3 8h10" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ className = "size-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} {...base}>
+      <path d="M3 8.5l3.25 3.25L13 5" />
+    </svg>
+  );
+}

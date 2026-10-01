@@ -157,7 +157,7 @@ export function CheckoutForm({ defaults, email }: { defaults: Defaults; email: s
                   <div className="text-[12px] opacity-65">{describeOptions(l.info.optionValues)}</div>
                 )}
               </div>
-              <span className={`flex-none text-right text-[13px] ${l.info?.price == null ? "max-w-20 leading-tight text-gold" : "font-medium"}`}>
+              <span className={`flex-none text-right text-[13px] ${l.info?.price == null ? "max-w-20 leading-tight text-gold-ink" : "font-medium"}`}>
                 {l.info ? formatPrice(l.info.price == null ? null : l.info.price * l.qty) : ""}
               </span>
             </li>

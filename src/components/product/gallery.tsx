@@ -58,7 +58,8 @@ export function Gallery({ images, name, focusPath }: { images: Img[]; name: stri
               onClick={() => scrollTo(i)}
               className={`flex-none overflow-hidden rounded-lg border-2 ${i === index ? "border-navy" : "border-transparent"}`}
             >
-              <ProductImage path={img.path} alt="" sizes="80px" className="size-16 md:size-20" />
+              {/* eager: thumbnails are on screen, and share the main photo's URL */}
+              <ProductImage path={img.path} alt="" sizes="80px" className="size-16 md:size-20" priority />
             </button>
           ))}
         </div>

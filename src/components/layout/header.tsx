@@ -8,7 +8,7 @@ import { SearchTrigger } from "./search-overlay";
 
 export function Header({ groups }: { groups: Group[] }) {
   return (
-    <header className="sticky top-0 z-30 bg-navy text-cream-2">
+    <header className="on-dark sticky top-0 z-30 bg-navy text-cream-2">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-0.5 px-2 md:h-16 md:gap-2 md:px-8 lg:gap-4">
         <div className="md:order-2">
           <CategoryMenu groups={groups} />

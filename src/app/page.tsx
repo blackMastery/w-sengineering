@@ -12,7 +12,7 @@ export default async function Home() {
   return (
     <>
       <section className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-7">
-        <div className="grid overflow-hidden rounded-2xl bg-navy text-cream-2 md:min-h-[420px] md:grid-cols-[1.15fr_1fr]">
+        <div className="on-dark grid overflow-hidden rounded-2xl bg-navy text-cream-2 md:min-h-[420px] md:grid-cols-[1.15fr_1fr]">
           <div className="flex flex-col justify-center gap-4 px-6 py-9 md:gap-5 md:p-14">
             <span className="font-mono text-[11px] font-medium tracking-[.12em] text-gold-light md:text-xs">
               AUTHORIZED KRAFT TOOL CO. RESELLER
@@ -46,9 +46,16 @@ export default async function Home() {
       <section className="mx-auto max-w-7xl px-4 pt-10 md:px-8 md:pt-12" aria-labelledby="shop-by-category">
         <SectionHeading id="shop-by-category" title="Shop by category" href="/c" />
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-6">
-          {groups.map((g) => (
+          {groups.map((g, i) => (
             <Link key={g.id} href={`/c/${g.slug}`} className="group flex flex-col gap-2.5">
-              <ProductImage path={g.image} alt="" sizes="(min-width: 1024px) 16vw, 50vw" className="aspect-square overflow-hidden rounded-xl" />
+              {/* first row is above the fold on phones (the hero photos are desktop-only) */}
+              <ProductImage
+                path={g.image}
+                alt=""
+                sizes="(min-width: 1024px) 16vw, 50vw"
+                className="aspect-square overflow-hidden rounded-xl"
+                priority={i < 2}
+              />
               <div className="flex justify-between gap-2 text-[14.5px]">
                 <span className="font-medium group-hover:underline">{g.name}</span>
                 <span className="opacity-55">{g.count}</span>
