@@ -12,6 +12,8 @@ export function authMessage(error: { code?: string; message: string }): string {
       return "Choose a stronger password: at least 8 characters.";
     case "same_password":
       return "That’s your current password. Choose a new one.";
+    case "user_banned":
+      return "This account is suspended. Contact W&S.";
     case "over_email_send_rate_limit":
     case "over_request_rate_limit":
       return "Too many attempts. Wait a minute and try again.";

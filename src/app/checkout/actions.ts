@@ -54,6 +54,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     if (error.hint === "unavailable") {
       return { ok: false, reason: "unavailable", error: "Some items are no longer available. We’ve updated your cart; check it and try again." };
     }
+    if (error.hint === "blocked") return { ok: false, error: error.message };
     // 22023 = our validation messages, written for customers
     if (error.code === "22023") return { ok: false, error: error.message };
     console.error("place_order failed", error);

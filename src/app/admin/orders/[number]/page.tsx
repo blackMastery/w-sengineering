@@ -4,6 +4,7 @@ import { ProposalView } from "@/components/account/proposal-view";
 import { StatusPill } from "@/components/account/status-pill";
 import { LocalTime } from "@/components/local-time";
 import { requireAdmin } from "@/lib/admin/auth";
+import { getOrderCustomerContext } from "@/lib/admin/customers";
 import { getAdminOrder } from "@/lib/admin/orders";
 import { describeOptions, formatPrice } from "@/lib/format";
 import { ADMIN_STATUS_LABEL } from "@/lib/order-status";
@@ -22,6 +23,7 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
   await requireAdmin(`/admin/orders/${number}`);
   const order = await getAdminOrder(number);
   if (!order) notFound();
+  const customer = await getOrderCustomerContext(order.user_id);
 
   const open = order.proposals.find((p) => p.status === "proposed");
   const past = order.proposals.filter((p) => p.status !== "proposed");
@@ -173,10 +175,35 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
                 </>
               )}
             </p>
-            <p className="mt-1 text-[12.5px] opacity-60">
-              {order.customerOrderCount} {order.customerOrderCount === 1 ? "order" : "orders"} in total
+            <p className="mt-1 text-[12.5px]">
+              <Link href={`/admin/customers/${order.user_id}`} className="underline">
+                Customer page
+              </Link>
+              <span className="opacity-60">
+                {" · "}
+                {order.customerOrderCount} {order.customerOrderCount === 1 ? "order" : "orders"} in total
+              </span>
             </p>
+            {customer.blocked && <p className="mt-1 text-[12.5px] font-medium text-red-800">This account is blocked.</p>}
           </div>
+          {customer.notes.length > 0 && (
+            <div>
+              <h2 className="mb-1 font-mono text-[11px] font-medium tracking-widest opacity-60">ADMIN NOTES ON THIS CUSTOMER</h2>
+              <ul className="flex flex-col gap-2">
+                {customer.notes.map((n) => (
+                  <li key={n.id} className="rounded-lg bg-sand/50 px-3 py-2">
+                    <p className="line-clamp-4 break-words whitespace-pre-line">{n.body}</p>
+                    <div className="mt-0.5 text-[11.5px] opacity-60">
+                      {n.author} · <LocalTime iso={n.created_at} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <Link href={`/admin/customers/${order.user_id}#notes-heading`} className="mt-1 inline-block text-[12.5px] underline">
+                {customer.noteCount > customer.notes.length ? `All ${customer.noteCount} notes` : "Add or edit notes"}
+              </Link>
+            </div>
+          )}
           <div>
             <h2 className="mb-1 font-mono text-[11px] font-medium tracking-widest opacity-60">{order.fulfillment === "pickup" ? "PICKUP" : "DELIVER TO"}</h2>
             {order.address ? (

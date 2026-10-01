@@ -13,6 +13,7 @@ const SECTIONS: { title: string; links: NavLink[] }[] = [
       { href: "/admin", label: "Overview", exact: true },
       { href: "/admin/orders", label: "Orders", badge: "pending" },
       { href: "/admin/purchase-orders", label: "Purchase orders" },
+      { href: "/admin/customers", label: "Customers" },
     ],
   },
   {

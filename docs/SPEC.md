@@ -96,6 +96,27 @@ One admin at launch; `profiles.role` leaves room for staff.
 - **Purchase orders:** build from Confirmed lines grouped by SKU, export (CSV), mark sent and received.
 - **Audit log:** every status change, line edit and price edit: who, when, before, after. Customers see a status timeline only.
 
+## Customers (admin)
+
+Admin pages to look up customers and their orders: `/admin/customers` (list) and a customer detail page.
+
+**List**
+- Every signed-up account, including ones that never ordered or never confirmed their email. Filters: has orders, no orders, unconfirmed email, blocked, staff. Admins are listed too, marked as staff.
+- Columns: name, email, phone, orders (open / total), open estimate (GYD), last order date. Default sort: most recent order first; also newest sign-up, name, most orders.
+- Search by name, email or phone. Phone matching uses digits only and ignores a leading 592, and also checks the name/phone used on each order.
+- No export for now.
+
+**Detail page**
+- Profile (name, phone, email), email verified or not, signed up and last sign-in dates (from Supabase Auth). Name and phone are not editable by admins.
+- Money: open estimate (sum of order estimates, priced lines only, for orders not yet invoiced: pending, confirmed, ordered from supplier, awaiting approval, arrived) and order counts by status. An "Invoiced" total is added with invoicing (build step 7).
+- All their orders (status filter), linking to the admin order page.
+- Addresses used (distinct delivery addresses, last used) and names/phones used on orders when they differ from the profile.
+- Private notes: any admin can add; only the author can edit or delete their own (edits marked "edited"); all admins read all notes. The admin order page shows the customer's latest notes next to the contact details.
+
+**Account actions**
+- **Block / unblock:** a reason is required and stays admin-only (audit log + customer page). Blocking signs the customer out and stops sign-in ("This account is suspended. Contact W&S.") and order placement, even mid-session; they can still browse as a guest. Open orders are left as they are; the block screen lists them so the admin can cancel any individually.
+- **Make admin / remove admin:** making someone admin requires typing their email. You can't remove your own admin role, the last admin can't be demoted or blocked, and admins can't be blocked (demote first).
+
 ## Catalog management (admin CRUD)
 
 The admin is the source of truth for the catalog after launch; the PDF pipeline is for the initial load only and the seed is never re-run on production.
