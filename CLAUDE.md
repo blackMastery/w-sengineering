@@ -88,6 +88,12 @@ Wireframe items to **drop**: promo code field, "Request a trade quote", free-shi
 - `src/app/actions.ts` — server actions for search-as-you-type and cart lines.
 - Currency: GYD, formatted only in `src/lib/format.ts` (`formatPrice`); admin inputs parse with `parseGyd` (`src/lib/admin/paste.ts`).
 
+## SEO — code map
+
+- `src/lib/site.ts`: `SITE_URL` (production `https://www.wsengineeringgy.com`, override with `NEXT_PUBLIC_SITE_URL`), `openGraph()` defaults (a page's `openGraph` replaces the layout's whole object, so always build from it), `metaDescription`, `breadcrumbJsonLd`. Root layout sets `metadataBase`.
+- Every indexable page sets `alternates.canonical` (never in the layout: it would cascade). Listings: `listingMetadata` in `src/lib/seo-listing.ts` keeps `?page=N`, noindexes `?brand`/`?sort`. Private pages are `robots: { index: false }` and disallowed in `src/app/robots.ts`.
+- `src/app/sitemap.ts` (hourly): home, groups, categories, live products + images (`getSitemapProducts`). JSON-LD via `components/json-ld.tsx`: Organization + WebSite on home, Product (GYD offers for priced variants, no availability — no stock) + BreadcrumbList on product and category pages.
+
 ## Accounts & orders (build step 4) — code map
 
 - `src/proxy.ts` refreshes the Supabase session cookie (`getClaims()`); `src/lib/auth.ts` `getUser()/requireUser()` for server pages.

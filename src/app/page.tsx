@@ -1,9 +1,41 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { JsonLd } from "@/components/json-ld";
 import { FindByPartButton } from "@/components/layout/find-by-part-button";
 import { ProductGrid } from "@/components/product-card";
 import { ProductImage } from "@/components/product-image";
 import { SectionHeading } from "@/components/section-heading";
 import { getGroups, getHomeLists } from "@/lib/catalog";
+import { absoluteUrl, SITE_DESCRIPTION, SITE_LOGO, SITE_NAME, SITE_URL } from "@/lib/site";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: absoluteUrl(SITE_LOGO),
+      description: SITE_DESCRIPTION,
+      areaServed: { "@type": "Country", name: "Guyana" },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
 
 export default async function Home() {
   const [groups, { bestSellers, newArrivals }] = await Promise.all([getGroups(), getHomeLists()]);
@@ -11,6 +43,7 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd data={siteJsonLd} />
       <section className="mx-auto max-w-7xl px-4 pt-4 md:px-8 md:pt-7">
         <div className="on-dark grid overflow-hidden rounded-2xl bg-navy text-cream-2 md:min-h-[420px] md:grid-cols-[1.15fr_1fr]">
           <div className="flex flex-col justify-center gap-4 px-6 py-9 md:gap-5 md:p-14">

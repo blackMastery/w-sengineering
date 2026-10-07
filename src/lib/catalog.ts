@@ -266,6 +266,36 @@ export const getProduct = cache(async (slug: string): Promise<ProductDetail | nu
   };
 });
 
+/** Every live product for sitemap.xml: published (RLS) with at least one orderable variant. */
+export async function getSitemapProducts(): Promise<{ slug: string; updatedAt: string; images: string[] }[]> {
+  type Row = {
+    slug: string;
+    updated_at: string;
+    variant_prices: { is_orderable: boolean }[];
+    product_images: { storage_path: string; sort: number }[];
+  };
+  const rows: Row[] = [];
+  // PostgREST caps responses at 1,000 rows, so page through.
+  for (let from = 0; ; from += 1000) {
+    const page = check(
+      await publicDb
+        .from("products")
+        .select("slug, updated_at, variant_prices(is_orderable), product_images(storage_path, sort)")
+        .order("slug")
+        .range(from, from + 999),
+    ) as unknown as Row[];
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  return rows
+    .filter((r) => r.variant_prices.some((v) => v.is_orderable))
+    .map((r) => ({
+      slug: r.slug,
+      updatedAt: r.updated_at,
+      images: [...r.product_images].sort((a, b) => a.sort - b.sort).map((i) => i.storage_path),
+    }));
+}
+
 /** Admin-picked related products ("Often bought together"), else same-subcategory neighbours. */
 export async function getRelated(product: ProductDetail, limit = 4): Promise<{ products: ProductCard[]; curated: boolean }> {
   const links = check(

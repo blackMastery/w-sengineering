@@ -9,6 +9,7 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { SearchOverlay } from "@/components/layout/search-overlay";
 import { getGroups } from "@/lib/catalog";
+import { openGraph, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const garamond = EB_Garamond({ variable: "--font-eb-garamond", subsets: ["latin"], weight: ["400", "500", "600"] });
@@ -17,8 +18,12 @@ const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"
 const yellowtail = Yellowtail({ variable: "--font-yellowtail", subsets: ["latin"], weight: "400" });
 
 export const metadata: Metadata = {
-  title: { default: "W&S Engineering — Kraft Tool Co. reseller", template: "%s · W&S Engineering" },
-  description: "Concrete, masonry, drywall, tile and measuring tools from Kraft Tool Co., W. Rose, Sands Level, Gator Tools and Hi-Craft.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: `${SITE_NAME} — Kraft Tool Co. tools in Guyana`, template: `%s · ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: openGraph(),
+  twitter: { card: "summary" },
 };
 
 export const viewport: Viewport = { themeColor: "#13204a" };

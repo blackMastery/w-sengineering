@@ -3,7 +3,11 @@ import Link from "next/link";
 import { ProductImage } from "@/components/product-image";
 import { getGroups } from "@/lib/catalog";
 
-export const metadata: Metadata = { title: "All categories" };
+export const metadata: Metadata = {
+  title: "All categories",
+  description: "Browse every tool category: concrete, masonry, drywall, tile, measuring and layout tools from Kraft Tool Co. and partner brands.",
+  alternates: { canonical: "/c" },
+};
 
 export default async function AllCategoriesPage() {
   const groups = await getGroups();
